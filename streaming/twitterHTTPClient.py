@@ -24,7 +24,6 @@ Todo:
 import tweepy
 from tweepy import OAuthHandler
 from tweepy import Stream
-from tweepy.streaming import StreamListener
 import socket
 import json
 import time
@@ -38,9 +37,9 @@ CONSUMER_KEY = '1G4EwhFitn4OQFSYwDqbkwL56'     # your API key
 CONSUMER_SECRET = 'LAJsl6dp72pBRrUIqpt4MdV7qscN6LqopeZutl207IHtSPaSNU'  # your API secret key
 
 # the tags to track
-tags = ['#Bitcoin', '#cryptocurrency']
+tags = ['#eth', '#cryptocurrency']
 
-class TweetsListener(StreamListener):
+class TweetsListener(Stream):
     """
     tweets listener object
     """
@@ -90,7 +89,5 @@ class twitter_client:
 
 
 if __name__ == '__main__':
-    reload(sys)
-    sys.setdefaultencoding('utf8')
     client = twitter_client("localhost", 9001)
     client.run_client(tags)

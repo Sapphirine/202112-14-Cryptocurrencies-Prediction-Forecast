@@ -4,48 +4,30 @@
 """
 This module is the spark streaming analysis process.
 
-
-Usage:
-    If used with dataproc:
-        gcloud dataproc jobs submit pyspark --cluster <Cluster Name> twitterHTTPClient.py
-
-    Create a dataset in BigQurey first using
-        bq mk bigdata_sparkStreaming
-
-    Remeber to replace the bucket with your own bucket name
-
-
-Todo:
-    1. hashtagCount: calculate accumulated hashtags count
-    2. wordCount: calculate word count every 60 seconds
-        the word you should track is listed below.
-    3. save the result to google BigQuery
-
 """
 
 from pyspark import SparkConf,SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.sql import Row, SQLContext
+from google.cloud import language
+from importlib import reload
 import sys
 import requests
 import time
 import subprocess
 import re
+import os
 
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
+            'gs://hw2-e6893/e6893-hw0-c8eb72b6d91a.json'
 
 # global variables
 bucket = "hw2-e6893"
-output_directory_hashtags = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/hashtagsCount'.format(bucket)
-output_directory_wordcount = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/wordcount'.format(bucket)
-output_directory_tweets = 'gs://{}/hadoop/tweets'.format(bucket)
+output_directory = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/sentiment'.format(bucket)
 # output table and columns name
-output_dataset = 'hashtagDataSet'                     #the name of your dataset in BigQuery
-output_table_hashtags = 'hashtags'
-columns_name_hashtags = ['hashtags', 'count']
-output_table_wordcount = 'wordcount'
-columns_name_wordcount = ['word', 'count', 'time']
-columns_name_tweets = ['words']
-output_table_tweets = 'words'
+output_dataset = 'crypto'                     #the name of your dataset in BigQuery
+output_table = 'eth'
+columns_name = ['time', 'text', 'score', 'magnitude']
 
 # parameter
 IP = 'localhost'    # ip port
@@ -53,8 +35,25 @@ PORT = 9001       # port
 
 STREAMTIME = 600          # time that the streaming process runs
 
-targetWORD = ['#Bitcoin', '#cryptocurrency']     #the words you should filter and do word count
+targetWORD = ['#eth', '#cryptocurrency']     #the words you should filter and do word count
 
+
+def analyze_text_sentiment(text):
+    client = language.LanguageServiceClient()
+    document = language.Document(content=text, type_=language.Document.Type.PLAIN_TEXT)
+
+    response = client.analyze_sentiment(document=document)
+
+    sentiment = response.document_sentiment
+    results = dict(
+        text=text,
+        score=f"{sentiment.score:.1%}",
+        magnitude=f"{sentiment.magnitude:.1%}",
+    )
+    for k, v in results.items():
+        print(f"{k:10}: {v}")
+    return (time.strftime("%Y-%m-%d %H:%M:%S"), results['text'], results['score'], results['magnitude'])
+        
 # Helper functions
 def saveToStorage(rdd, output_directory, columns_name, mode):
     """
@@ -89,35 +88,6 @@ def saveToBigQuery(sc, output_dataset, output_table, directory):
         output_path, True)
 
 
-def hashtagCount(words):
-    """
-    Calculate the accumulated hashtags count sum from the beginning of the stream
-    and sort it by descending order of the count.
-    Ignore case sensitivity when counting the hashtags:
-        "#Ab" and "#ab" is considered to be a same hashtag
-    You have to:
-    1. Filter out the word that is hashtags.
-       Hashtag usually start with "#" and followed by a serious of alphanumeric
-    2. map (hashtag) to (hashtag, 1)
-    3. sum the count of current DStream state and previous state
-    4. transform unordered DStream to a ordered Dstream
-    Hints:
-        you may use regular expression to filter the words
-        You can take a look at updateStateByKey and transform transformations
-    Args:
-        dstream(DStream): stream of real time tweets
-    Returns:
-        DStream Object with inner structure (hashtag, count)
-    """
-    def updateFunction(newValues, runningCount):
-        if runningCount is None:
-            runningCount = 0
-        return sum(newValues, runningCount)  # add the new values with the previous running count to get the new count
-
-    hashtags = words.filter(lambda word: len(word) > 1 and word[0] == "#").map(lambda word: (word.lower(), 1))
-    hashtagsSortByCount = hashtags.reduceByKey(lambda c1, c2: c1 + c2).updateStateByKey(updateFunction).transform(
-        lambda rdd: rdd.sortBy(lambda data: data[1], ascending=False)) # sort by count in descending order
-    return hashtagsSortByCount
 
 def wordCount(words):
     """
@@ -143,20 +113,10 @@ def wordCount(words):
     wordCountResult = wordCountPerWin.transform(lambda time, data: data.map(lambda d: (d[0], d[1], time.strftime("%Y-%m-%d %H:%M:%S"))))
     return wordCountResult
 
-def normalizewords(text):
-    re_pattern = re.compile(u'[^\u0000-\uD7FF\uE000-\uFFFF]', re.UNICODE)
-    return re_pattern.sub(u'\uFFFD', text)   
-
-def removeEmpty(wordList):
-    res = []
-    for word in wordList:
-        if word:
-            res.append(word)
-    return res
 
 if __name__ == '__main__':
     reload(sys)
-    sys.setdefaultencoding('utf8')
+    # sys.setdefaultencoding('utf8')
     # Spark settings
     conf = SparkConf()
     conf.setMaster('local[2]')
@@ -177,40 +137,17 @@ if __name__ == '__main__':
 
     # read data from port 9001
     dataStream = ssc.socketTextStream(IP, PORT)
-    dataStream.pprint()
+    # dataStream.pprint()
 
     tweets = dataStream.flatMap(lambda line: line.split("\r\n"))
-    words = dataStream.flatMap(lambda line: line.split(" "))
-    words.pprint()
+    tweets.pprint()
+    sentimentResults = tweets.map(lambda tweet: analyze_text_sentiment(tweet))
     
-    # calculate the accumulated hashtags count sum from the beginning of the stream
-    topTags = hashtagCount(words)
-    topTags.pprint()
-
-    # Calculte the word count during each time period 6s
-    wordCounts = wordCount(words)
-    wordCounts.pprint()
-
-    # save hashtags count and word count to google storage
-    # used to save to google BigQuery
-    # You should:
-    #   1. topTags: only save the lastest rdd in DStream
-    #   2. wordCount: save each rdd in DStream
-    # Hints:hashtagDataSet
-    #   1. You can take a look at foreachRDD transformation
-    #   2. You may want to use helper function saveToStorage
-    #   3. You should use save output to output_directory_hashtags, output_directory_wordcount,
-    #       and have output columns name columns_name_hashtags and columns_name_wordcount.
-    tweets.map(lambda text: text.lower().split(' ')).map(removeEmpty).filter(lambda d: len(d) > 10)\
-        .map(lambda d:[d]).foreachRDD(lambda word: saveToStorage(word, output_directory_tweets, columns_name_tweets, mode="append"))
-    topTags.foreachRDD(lambda d: saveToStorage(d, output_directory_hashtags, columns_name_hashtags, mode="overwrite"))
-    wordCounts.foreachRDD(lambda d: saveToStorage(d, output_directory_wordcount, columns_name_wordcount, mode="append"))
+    sentimentResults.foreachRDD(lambda d: saveToStorage(d, output_directory, columns_name, mode="append"))
     # start streaming process, wait for 600s and then stop.
     ssc.start()
     time.sleep(STREAMTIME)
     ssc.stop(stopSparkContext=False, stopGraceFully=True)
 
     # put the temp result in google storage to google BigQuery
-    saveToBigQuery(sc, output_dataset, output_table_tweets, output_directory_tweets)
-    saveToBigQuery(sc, output_dataset, output_table_hashtags, output_directory_hashtags)
-    saveToBigQuery(sc, output_dataset, output_table_wordcount, output_directory_wordcount)
+    saveToBigQuery(sc, output_dataset, output_table, output_directory)

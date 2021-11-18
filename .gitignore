@@ -131,3 +131,5 @@ dmypy.json
 
 # ignore
 .DS_Store
+streaming/*.txt
+streaming/*.json
