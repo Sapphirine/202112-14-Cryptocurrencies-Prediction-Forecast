@@ -17,42 +17,28 @@ import time
 import subprocess
 import re
 import os
+import nltk
+nltk.downloader.download('vader_lexicon')
+from nltk.sentiment import SentimentIntensityAnalyzer
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
-            'gs://hw2-e6893/e6893-hw0-c8eb72b6d91a.json'
+minAnalysisLen = 10
 
 # global variables
-bucket = "hw2-e6893"
-output_directory = 'gs://{}/hadoop/tmp/bigquery/pyspark_output/sentiment'.format(bucket)
+bucket = "crypto-team14"
+output_directory = 'gs://{}/tweet/sentiment'.format(bucket)
 # output table and columns name
 output_dataset = 'crypto'                     #the name of your dataset in BigQuery
 output_table = 'eth'
-columns_name = ['time', 'text', 'score', 'magnitude']
-
+#columns_name = ['time', 'score', 'magnitude']
+columns_name = ['time', 'neg', 'neu', 'pos', 'compound', 'length', 'text']
 # parameter
 IP = 'localhost'    # ip port
 PORT = 9001       # port
 
-STREAMTIME = 600          # time that the streaming process runs
+STREAMTIME = 60          # time that the streaming process runs
 
-targetWORD = ['#eth', '#cryptocurrency']     #the words you should filter and do word count
+cryptoType = '#eth'     #the words you should filter and do word count
 
-
-def analyze_text_sentiment(text):
-    client = language.LanguageServiceClient()
-    document = language.Document(content=text, type_=language.Document.Type.PLAIN_TEXT)
-
-    response = client.analyze_sentiment(document=document)
-
-    sentiment = response.document_sentiment
-    results = dict(
-        text=text,
-        score=f"{sentiment.score:.1%}",
-        magnitude=f"{sentiment.magnitude:.1%}",
-    )
-    for k, v in results.items():
-        print(f"{k:10}: {v}")
-    return (time.strftime("%Y-%m-%d %H:%M:%S"), results['text'], results['score'], results['magnitude'])
         
 # Helper functions
 def saveToStorage(rdd, output_directory, columns_name, mode):
@@ -88,24 +74,8 @@ def saveToBigQuery(sc, output_dataset, output_table, directory):
         output_path, True)
 
 
-
 def wordCount(words):
-    """
-    Calculte the count of 5 sepcial words for every 60 seconds (window no overlap)
-    You can choose your own words.
-    Your should:
-    1. filter the words
-    2. count the word during a special window size
-    3. add a time related mark to the output of each window, ex: a datetime type
-    Hints:
-        You can take a look at reduceByKeyAndWindow transformation
-        Dstream is a serious of rdd, each RDD in a DStream contains data from a certain interval
-        You may want to take a look of transform transformation of DStream when trying to add a time
-    Args:
-        dstream(DStream): stream of real time tweets
-    Returns:
-        DStream Object with inner structure (word, (count, time))
-    """
+
     winSize = 60
     # Reduce last 60 seconds of data, every 60 seconds
     wordCountPerWin = words.filter(lambda word: word.lower() in targetWORD).map(lambda word: (word.lower(), 1))\
@@ -114,10 +84,24 @@ def wordCount(words):
     return wordCountResult
 
 
+def analyze_text_sentiment(text):
+    client = language.LanguageServiceClient()
+    document = language.Document(content=text, type_=language.Document.Type.PLAIN_TEXT)
+
+    response = client.analyze_sentiment(document=document)
+
+    return (time.strftime("%Y-%m-%d %H:%M:%S"), 0.4, 0.3)
+
+def nltk_sentiment(text):
+    sia = SentimentIntensityAnalyzer()
+    result = sia.polarity_scores(text)
+    return [time.strftime("%Y-%m-%d %H:%M:%S"), result['neg'], result['neu'], result['pos'], result['compound'], len(text), text]
+
 if __name__ == '__main__':
-    reload(sys)
-    # sys.setdefaultencoding('utf8')
-    # Spark settings
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
+            '/home/sk4920/e6893-hw0-e5d0369749d2.json'
+    
+
     conf = SparkConf()
     conf.setMaster('local[2]')
     conf.setAppName("TwitterStreamApp")
@@ -139,9 +123,11 @@ if __name__ == '__main__':
     dataStream = ssc.socketTextStream(IP, PORT)
     # dataStream.pprint()
 
-    tweets = dataStream.flatMap(lambda line: line.split("\r\n"))
+    tweets = dataStream.flatMap(lambda line: line.split("\r\n"))\
+            .filter(lambda tweet: len(tweet.split(' ')) >= minAnalysisLen and cryptoType in tweet.lower().split(' '))
     tweets.pprint()
-    sentimentResults = tweets.map(lambda tweet: analyze_text_sentiment(tweet))
+    sentimentResults = tweets.map(nltk_sentiment)
+    sentimentResults.pprint()
     
     sentimentResults.foreachRDD(lambda d: saveToStorage(d, output_directory, columns_name, mode="append"))
     # start streaming process, wait for 600s and then stop.

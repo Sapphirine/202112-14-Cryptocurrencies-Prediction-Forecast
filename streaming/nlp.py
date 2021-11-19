@@ -1,12 +1,6 @@
 
 from google.cloud import language
-import sys
-import requests
-import time
-import subprocess
-import re
 import os
-
 
 def analyze_text_sentiment(text):
     client = language.LanguageServiceClient()
@@ -20,11 +14,23 @@ def analyze_text_sentiment(text):
         score=f"{sentiment.score:.1%}",
         magnitude=f"{sentiment.magnitude:.1%}",
     )
+    
     #['text', 'score', 'magnitude']
     for k, v in results.items():
         print(v)
         #print(f"{k:10}: {v}")
-        
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = './streaming/e6893-hw0-c8eb72b6d91a.json'
-text = "Ethereum is the second most popular cryptocurrency after Bitcoin. But did you know that Ethereum is a blockchain platform that also has its own currency called ETH?"
+    
+    # response = client.documents.classifyText(document=document)
+    # print(response)
+    
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
+            './streaming/e6893-hw0-e5d0369749d2.json'
+text = "RT @WhaleStats: 🐳🐳Daily analysis of the top 1000 ETH wallets 🐳🐳\
+Top 10 most used smart contracts:\
+🥇 #ETH\
+🥈 $USDT\
+🥉 $USDC\
+4⃣ $LINK\
+5⃣ $UNI…\
+"
 analyze_text_sentiment(text)

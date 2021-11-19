@@ -3,10 +3,11 @@
 
 apt-get -y install python3
 apt-get -y install python3-pip
-python3 -m pip install tweepy
+pip3 install -y tweepy=3.10.0
 pip3 install google
 pip3 install google-cloud-language
 pip3 install reload
+pip3 install nltk
 echo "export PYSPARK_PYTHON=python3" | tee -a  /etc/profile.d/spark_config.sh  /etc/*bashrc /usr/lib/spark/conf/spark-env.sh
 echo "Adding PYTHONHASHSEED=0 to profiles and spark-defaults.conf..."
 echo "export PYTHONHASHSEED=0" | tee -a /etc/profile.d/spark_config.sh /etc/*bashrc /usr/lib/spark/conf/spark-env.sh
