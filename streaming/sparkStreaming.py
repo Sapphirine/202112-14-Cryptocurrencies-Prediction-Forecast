@@ -21,25 +21,24 @@ import nltk
 nltk.downloader.download('vader_lexicon')
 from nltk.sentiment import SentimentIntensityAnalyzer
 
+# tweets criteria
 minAnalysisLen = 10
+cryptoType = ['#btc', '#bitcoin']     #the words you should filter and do word count
 
 # global variables
 bucket = "crypto-team14"
 output_directory = 'gs://{}/tweet/sentiment'.format(bucket)
 # output table and columns name
 output_dataset = 'crypto'                     #the name of your dataset in BigQuery
-output_table = 'eth'
+output_table = cryptoType[0][1:]
 #columns_name = ['time', 'score', 'magnitude']
 columns_name = ['time', 'neg', 'neu', 'pos', 'compound', 'length', 'text']
 # parameter
 IP = 'localhost'    # ip port
 PORT = 9001       # port
 
-STREAMTIME = 60          # time that the streaming process runs
+STREAMTIME = 3600 * 24        # time that the streaming process runs
 
-cryptoType = '#eth'     #the words you should filter and do word count
-
-        
 # Helper functions
 def saveToStorage(rdd, output_directory, columns_name, mode):
     """
@@ -54,7 +53,6 @@ def saveToStorage(rdd, output_directory, columns_name, mode):
     if not rdd.isEmpty():
         (rdd.toDF( columns_name ) \
         .write.save(output_directory, format="json", mode=mode))
-
 
 def saveToBigQuery(sc, output_dataset, output_table, directory):
     """
@@ -73,7 +71,6 @@ def saveToBigQuery(sc, output_dataset, output_table, directory):
     output_path.getFileSystem(sc._jsc.hadoopConfiguration()).delete(
         output_path, True)
 
-
 def wordCount(words):
 
     winSize = 60
@@ -82,7 +79,6 @@ def wordCount(words):
                             .reduceByKeyAndWindow(lambda x, y: x + y, lambda x, y: x - y, winSize, winSize)
     wordCountResult = wordCountPerWin.transform(lambda time, data: data.map(lambda d: (d[0], d[1], time.strftime("%Y-%m-%d %H:%M:%S"))))
     return wordCountResult
-
 
 def analyze_text_sentiment(text):
     client = language.LanguageServiceClient()
@@ -101,7 +97,6 @@ if __name__ == '__main__':
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
             '/home/sk4920/e6893-hw0-e5d0369749d2.json'
     
-
     conf = SparkConf()
     conf.setMaster('local[2]')
     conf.setAppName("TwitterStreamApp")
@@ -124,7 +119,8 @@ if __name__ == '__main__':
     # dataStream.pprint()
 
     tweets = dataStream.flatMap(lambda line: line.split("\r\n"))\
-            .filter(lambda tweet: len(tweet.split(' ')) >= minAnalysisLen and cryptoType in tweet.lower().split(' '))
+            .filter(lambda tweet: len(tweet.split(' ')) >= minAnalysisLen and \
+                                  any(crypto in tweet.lower().split(' ') for crypto in cryptoType))
     tweets.pprint()
     sentimentResults = tweets.map(nltk_sentiment)
     sentimentResults.pprint()

@@ -39,7 +39,7 @@ CONSUMER_KEY = '1G4EwhFitn4OQFSYwDqbkwL56'     # your API key
 CONSUMER_SECRET = 'LAJsl6dp72pBRrUIqpt4MdV7qscN6LqopeZutl207IHtSPaSNU'  # your API secret key
 
 # the tags to track
-tags = ['#eth', '#cryptocurrency', '#crypto']
+tags = ['#btc', '#bitcoin', '#cryptocurrency', '#crypto']
 
 class TweetsListener(StreamListener):
     """
@@ -93,5 +93,12 @@ class twitter_client:
 if __name__ == '__main__':
     reload(sys)
     # sys.setdefaultencoding('utf8')
-    client = twitter_client("localhost", 9001)
-    client.run_client(tags)
+    for _ in range(1000):
+      try:
+        client = twitter_client("localhost", 9001)
+        client.run_client(tags)
+      except Exception as e:
+        print(e)
+        print('Sleep 300 seconds to restart')
+        time.sleep(300)
+  

@@ -133,3 +133,4 @@ dmypy.json
 .DS_Store
 streaming/*.txt
 streaming/*.json
+Reddit/config/*.json
