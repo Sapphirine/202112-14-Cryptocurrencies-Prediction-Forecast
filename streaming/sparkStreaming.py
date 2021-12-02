@@ -37,7 +37,7 @@ columns_name = ['time', 'neg', 'neu', 'pos', 'compound', 'length', 'text']
 IP = 'localhost'    # ip port
 PORT = 9001       # port
 
-STREAMTIME = 3600 * 24        # time that the streaming process runs
+STREAMTIME = 3600 * 24 *  7       # time that the streaming process runs
 
 # Helper functions
 def saveToStorage(rdd, output_directory, columns_name, mode):
