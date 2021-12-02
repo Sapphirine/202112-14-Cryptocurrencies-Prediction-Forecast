@@ -93,12 +93,7 @@ class twitter_client:
 if __name__ == '__main__':
     reload(sys)
     # sys.setdefaultencoding('utf8')
-    for _ in range(1000):
-      try:
-        client = twitter_client("localhost", 9001)
-        client.run_client(tags)
-      except Exception as e:
-        print(e)
-        print('Sleep 300 seconds to restart')
-        time.sleep(300)
+    client = twitter_client("localhost", 9001)
+    client.run_client(tags)
+
   
