@@ -33,7 +33,6 @@ columns_name = ['id', 'time', 'title', 'author', 'neg', 'neu', 'pos', 'compound'
 minAnalysisLen = 10
 keywords = ['btc', 'bitcoin']
 listing = 'random' # new, hot, best
-textCap = 3000
 
 def uploadToStorage(df, fileName):
     client = storage.Client()
@@ -66,7 +65,7 @@ def fetch():
     for subreddit in subreddits:
         df = pd.DataFrame(columns = columns_name)
         df = df.set_index('id')
-        response = requests.get('https://oauth.reddit.com/r/{}/new'.format(subreddit), headers=headers, params=payload)
+        response = requests.get('https://oauth.reddit.com/r/{}/random'.format(subreddit), headers=headers, params=payload)
         # requests.get('https://oauth.reddit.com/r/{}/search'.format(subreddit), headers=headers, params=payload)
         # check connection and service
         if response.status_code != 200:
@@ -84,8 +83,7 @@ def fetch():
             sentimentResult = sia.polarity_scores(text)
             df.loc[postData['id']] = [datetime.utcfromtimestamp(postData['created_utc']).strftime('%Y-%m-%d %H:%M:%S'),\
                     postData['title'], postData['author_fullname'], sentimentResult['neg'],sentimentResult['neu'],\
-                    sentimentResult['pos'], sentimentResult['compound'], min(len(text), textCap), text[:min(len(text), textCap)]]
-            print(len(text))
+                    sentimentResult['pos'], sentimentResult['compound'], len(text), 'text']
             
         print('number of rows: {}'.format(len(df.index)))
         if df.shape[0] == 0 or df.shape[1] != 9:

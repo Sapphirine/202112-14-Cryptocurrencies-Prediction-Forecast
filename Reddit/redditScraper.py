@@ -8,7 +8,6 @@ import nltk
 nltk.downloader.download('vader_lexicon')
 from nltk.sentiment import SentimentIntensityAnalyzer
 import subprocess
-import time
 # The DAG object; we'll need this to instantiate a DAG
 from airflow import DAG
 
@@ -111,7 +110,7 @@ def fetch():
     
 # DAC show as ID in airflow
 with DAG(
-    'reddit',
+    'reddit_new',
     default_args=default_args,
     description='reddit workflow',
     schedule_interval=timedelta(hours=1),

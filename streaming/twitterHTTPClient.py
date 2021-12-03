@@ -93,7 +93,6 @@ class twitter_client:
 if __name__ == '__main__':
     reload(sys)
     # sys.setdefaultencoding('utf8')
+
     client = twitter_client("localhost", 9001)
     client.run_client(tags)
-
-  
