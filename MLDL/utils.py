@@ -23,14 +23,15 @@ def get_available_devices():
     return [x.name for x in local_device_protos]
 
 
-def create_train_test(df_train, args):
+def create_train_test(df_train, args, smooth=False):
     test_size = args.test_size
     window_size = args.window_size
     shift = args.shift
     threshold = args.threshold
 
     df_train = labelling(df_train, shift, threshold)
-    range_buy_sell(df_train)
+    if smooth:
+        range_buy_sell(df_train)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
     X, Y, dates= slicing(df_train, window_size=window_size)
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=0)
@@ -61,6 +62,7 @@ def get_btc():
     df_btc = df_btc[COLS]
     df_btc = df_btc.set_index("Date")
     return df_btc
+
 
 def range_buy_sell(df):
     buy_point = []
@@ -93,6 +95,7 @@ def range_buy_sell(df):
             cur_sell = sell_point[sell_pos]
             if abs(cur_sell - price)/cur_sell <= 0.03:
                 df.at[i,'Label'] = 2
+
 
 def collect_peaks(data, threshold, price_col="Close"):
     peaks = set()
