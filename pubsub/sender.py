@@ -11,20 +11,17 @@ def emailSender(event, context):
           context (google.cloud.functions.Context): Metadata for the event.
      """
      # decrypt the messgage
-     # pubsub_message = base64.b64decode(event['data']).decode('utf-8')
-     
-     message = Mail(
-     from_email="sk4920@columbia.edu",
-     to_emails="sk4920@columbia.edu",
-     subject='Sending with Twilio SendGrid is Fun',
-     html_content='<strong>and easy to do anywhere, even with Python</strong>')
-     try:
-          sg = SendGridAPIClient("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")
-          sg.send(message)
-     except Exception as e:
-          print(str(e))
-     # print(pubsub_message)
-
-
-if __name__ == '__main__':
-     emailSender(None, None)
+     pubsub_message = base64.b64decode(event['data']).decode('utf-8')
+     mailList = ["sk4920@columbia.edu", "wl2777@columbia.edu", "ch3561@columbia.edu"]
+     sg = SendGridAPIClient("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")
+     for mailAddr in mailList:
+          message = Mail(
+          from_email="sk4920@columbia.edu",
+          to_emails=mailAddr,
+          subject='Whale Alert',
+          html_content=pubsub_message)
+          try:               
+               sg.send(message)
+          except Exception as e:
+               print(str(e))
+     print(pubsub_message)
