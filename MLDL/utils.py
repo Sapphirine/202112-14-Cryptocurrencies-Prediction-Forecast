@@ -215,9 +215,11 @@ def train_model(X_train, y_train, model, args):
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=patience)
     
-    weight_val = len(np.where(y_train == np.array([1,0,0]))[0]) / len(np.where(y_train != np.array([1,0,0]))[0])
-    sample_weight = np.ones(shape=(len(y_train),))
-    sample_weight[np.where(y_train != np.array([1,0,0]))[0]] = weight_val
+    sample_weight = None
+    if args.auto_loss_weight:
+        weight_val = len(np.where(y_train == np.array([1,0,0]))[0]) / len(np.where(y_train != np.array([1,0,0]))[0])
+        sample_weight = np.ones(shape=(len(y_train),))
+        sample_weight[np.where(y_train != np.array([1,0,0]))[0]] = weight_val
     
     with tf.device(device):
         train_history = model.fit(X_train, y_train,
@@ -308,7 +310,7 @@ def load_model(args):
 
 def get_out_dir(args):
     global output_dir
-    out_dir = f"{output_dir}/{args.dataset}/win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    out_dir = f"{output_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
     return out_dir
@@ -318,5 +320,5 @@ def get_model_name(args):
     global model_dir
     if not os.path.isdir(f"{model_dir}/{args.dataset}"):
         os.makedirs(f"{model_dir}/{args.dataset}")
-    model_name = f"{model_dir}/{args.dataset}/win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    model_name = f"{model_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
     return model_name
