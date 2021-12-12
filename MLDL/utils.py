@@ -30,6 +30,7 @@ def create_train_test(df_train, args):
     threshold = args.threshold
 
     df_train = labelling(df_train, shift, threshold)
+    range_buy_sell(df_train)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
     X, Y, dates= slicing(df_train, window_size=window_size)
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=0)
@@ -61,6 +62,37 @@ def get_btc():
     df_btc = df_btc.set_index("Date")
     return df_btc
 
+def range_buy_sell(df):
+    buy_point = []
+    sell_point = []
+    for data in df.iterrows():
+        price = data[1]['Close']
+        label = data[1]['Label']
+        if label == 1:
+            buy_point.append(price)
+        elif label == 2:
+            sell_point.append(price)
+
+    buy_pos = 0
+    sell_pos = -1
+    for i, data in df.iterrows():
+        price = data['Close']
+        label = data['Label']
+        if label == 1:
+            sell_pos += 1
+        elif label == 2:
+            buy_pos += 1
+            if buy_pos == len(buy_point):
+                break
+        else:
+            cur_buy = buy_point[buy_pos]
+            if abs(price - cur_buy)/cur_buy <= 0.03:
+                df.at[i,'Label'] = 1
+            if sell_pos == -1:
+                continue
+            cur_sell = sell_point[sell_pos]
+            if abs(cur_sell - price)/cur_sell <= 0.03:
+                df.at[i,'Label'] = 2
 
 def collect_peaks(data, threshold, price_col="Close"):
     peaks = set()
