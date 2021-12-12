@@ -77,17 +77,19 @@ class twitter_client:
       self.s.bind((TCP_IP, TCP_PORT))
 
     def run_client(self, tags):
-      try:
-        self.s.listen(1)
-        while True:
-          print("Waiting for TCP connection...")
-          conn, addr = self.s.accept()
-          print("Connected... Starting getting tweets.")
+      self.s.listen(1)
+      while True:
+        print("Waiting for TCP connection...")
+        conn, addr = self.s.accept()
+        print("Connected... Starting getting tweets.")
+        try:
           sendData(conn,tags)
+        except:
+          pass
+        finally:
           conn.close()
-          # time.sleep(20)
-      except KeyboardInterrupt:
-        exit
+        # time.sleep(20)
+
 
 
 if __name__ == '__main__':

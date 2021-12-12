@@ -37,7 +37,7 @@ columns_name = ['time', 'neg', 'neu', 'pos', 'compound', 'length', 'text']
 IP = 'localhost'    # ip port
 PORT = 9001       # port
 
-STREAMTIME = 3600 * 24 *  7       # time that the streaming process runs
+STREAMTIME = 3600 * 24 * 2      # time that the streaming process runs
 
 # Helper functions
 def saveToStorage(rdd, output_directory, columns_name, mode):
@@ -62,8 +62,6 @@ def saveToBigQuery(sc, output_dataset, output_table, directory):
     files = directory + '/part-*'
     subprocess.check_call(
         'bq load --source_format NEWLINE_DELIMITED_JSON '
-        '--replace '
-        '--autodetect '
         '{dataset}.{table} {files}'.format(
             dataset=output_dataset, table=output_table, files=files
         ).split())
@@ -100,7 +98,8 @@ if __name__ == '__main__':
     conf = SparkConf()
     conf.setMaster('local[2]')
     conf.setAppName("TwitterStreamApp")
-
+    # output_directory += '/' + str(time.time()).split('.')[0]
+    print(output_directory)
     # create spark context with the above configuration
     #sc = SparkContext(conf=conf)
     sc = SparkContext.getOrCreate(conf=conf)

@@ -8,7 +8,7 @@ def callback(message):
     message.ack()           
 
 if __name__ == '__main__':
-    credentials_path = './credential/myFile.privateKey.json'
+    credentials_path = './pubsub/credential/myFile.privateKey.json'
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
     timeout = 5.0                                                                       # timeout in seconds

@@ -2,7 +2,7 @@ import os
 from google.cloud import pubsub_v1
 
 if __name__ == '__main__':
-    credentials_path = './credential/myFile.privateKey.json'
+    credentials_path = './pubsub/credential/myFile.privateKey.json'
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
     publisher = pubsub_v1.PublisherClient()
