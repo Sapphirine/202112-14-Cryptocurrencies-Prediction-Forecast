@@ -11,6 +11,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='dataset and model params.')
     # dataset params
     parser.add_argument('-t', '--threshold', dest='threshold', default=0.1, type=float)
+    # shift 1: predict yesterday. -1: predict tomorrow
     parser.add_argument('-s', '--shift', dest='shift', default=0, type=int)
     parser.add_argument('-w', '--window_size', dest='window_size', default=30, type=int)
     parser.add_argument('-ts', '--test_size', dest='test_size', default=0.1, type=float)
@@ -21,25 +22,16 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--batch_size', dest='batch_size', default=16, type=int)
     parser.add_argument('-p', '--patience', dest='patience', default=100, type=int)
     parser.add_argument('-dv', '--device', dest='device', default='cpu', choices=['cpu', 'gpu'])
+    parser.add_argument('-md', '--max_dilation', dest='max_dilation', default=7, type=int)
+    parser.add_argument('-nf', '--n_filters', dest='n_filters', default=64, type=int)
+    parser.add_argument('-fd', '--filter_width', dest='filter_width', default=2, type=int)
+    parser.add_argument('-lr', '--learning_rate', dest='learning_rate', default=3e-6, type=float)
     
     args = parser.parse_args()
+    dataset = args.dataset
 
-    # dataset params
-    threshold = args.threshold 
-    # shift 1: predict yesterday. -1: predict tomorrow
-    shift = args.shift 
-    window_size = args.window_size
-    test_size = args.test_size 
-    valid_size = args.valid_size 
-    dataset = args.dataset 
-    
-    # model params
-    epochs = args.epochs 
-    batch_size = args.batch_size 
-    patience = args.patience
-    device = args.device
-    if device == 'cpu': device = "/cpu:0"
-    elif device == 'gpu': device = "/gpu:0"
+    if args.device == 'cpu': args.device = "/cpu:0"
+    elif args.device == 'gpu': args.device = "/gpu:0"
     
     df_btc = get_btc()
     if dataset == 'btc':
@@ -55,16 +47,12 @@ if __name__ == '__main__':
         df_trend = get_trend()
         df_train = df_btc.join(df_wiki).join(df_trend).dropna()
     
-    X_train, y_train, X_test, y_test = create_train_test(df_train, test_size, window_size, shift, threshold)
+    X_train, y_train, X_test, y_test = create_train_test(df_train, args)
     sequence_length = X_train.shape[1]
     nb_features = X_train.shape[-1]
-    
-    model = build_model(sequence_length, nb_features)
-    model.summary()
-
-    train_history, model = train_model(X_train, y_train, model, dataset, window_size, shift,\
-                batch_size, epochs, patience, valid_size, device="/cpu:0")
-    
-    show_final_history(train_history, dataset, window_size, shift)
-    dump_confusion_matrix(model, X_train, y_train, dataset, "train", window_size, shift)
-    dump_confusion_matrix(model, X_test, y_test, dataset, "test", window_size, shift)
+    model = build_model(sequence_length, nb_features, args)
+    #model.summary()
+    train_history, model = train_model(X_train, y_train, model, dataset, args)
+    show_final_history(train_history, dataset, args)
+    dump_confusion_matrix(model, X_train, y_train, dataset, "train", args)
+    dump_confusion_matrix(model, X_test, y_test, dataset, "test", args)

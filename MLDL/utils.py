@@ -23,7 +23,12 @@ def get_available_devices():
     return [x.name for x in local_device_protos]
 
 
-def create_train_test(df_train, test_size, window_size, shift, threshold):
+def create_train_test(df_train, args):
+    test_size = args.test_size
+    window_size = args.window_size
+    shift = args.shift
+    threshold = args.threshold
+
     df_train = labelling(df_train, shift, threshold)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
     X, Y = slicing(df_train, window_size=window_size)
@@ -133,10 +138,12 @@ def slicing(data, label_col="Label", window_size=30):
     return np.array(X), np.array(Y)
 
 
-def build_model(sequence_length, nb_features):
-    n_filters = 64
-    filter_width = 2
-    dilation_rates = [i for i in range(1, 8)]
+def build_model(sequence_length, nb_features, args):
+    n_filters = args.n_filters 
+    filter_width = args.filter_width 
+    learning_rate = args.learning_rate
+    max_dilation = args.max_dilation
+    dilation_rates = [i for i in range(1, max_dilation+1)]
     
     history_seq = Input(shape=(sequence_length, nb_features))
     x = history_seq
@@ -182,7 +189,7 @@ def build_model(sequence_length, nb_features):
     out= Dense(len(class_names), activation="softmax")(out)
     
     model = Model(history_seq, out)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=3e-6)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     
     # https://www.tensorflow.org/addons/api_docs/python/tfa/metrics/F1Score#
     #f1_score = tfa.metrics.F1Score(num_classes=3, threshold=None)
@@ -191,9 +198,22 @@ def build_model(sequence_length, nb_features):
     return model
 
 
-def train_model(X_train, y_train, model, dataset, window_size, shift,\
-                batch_size, epochs, patience, valid_size, device="/cpu:0"):
-    checkpoint = ModelCheckpoint(f"{model_dir}/{dataset}_window_{window_size}_shift_{shift}.h5", monitor='val_loss', verbose=1, save_best_only=True, mode='max')
+def train_model(X_train, y_train, model, dataset, args):
+    global model_dir
+    window_size = args.window_size
+    shift = args.shift
+    batch_size = args.batch_size
+    epochs = args.epochs
+    patience = args.patience
+    valid_size = args.valid_size
+    device = args.device
+
+    if not os.path.isdir(f"{model_dir}/{dataset}"):
+        os.makedirs(f"{model_dir}/{dataset}")
+
+    model_name = f"{model_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+
+    checkpoint = ModelCheckpoint(f"{model_name}.h5", monitor='val_loss', verbose=1, save_best_only=True, mode='max')
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=patience)
     
@@ -211,7 +231,10 @@ def train_model(X_train, y_train, model, dataset, window_size, shift,\
     return train_history, model
 
 
-def show_final_history(history, dataset, window_size, shift):
+def show_final_history(history, dataset, args):
+    global output_dir
+    window_size = args.window_size
+    shift = args.shift
     plt.style.use("ggplot")
     fig, ax = plt.subplots(1,2,figsize=(15,5))
     ax[0].set_title('Loss')
@@ -224,11 +247,11 @@ def show_final_history(history, dataset, window_size, shift):
     ax[0].legend(loc='upper right')
     ax[1].legend(loc='lower right')
     
-    output_dir = f"./outputs/{dataset}"
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
+    out_dir = f"{output_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
     
-    plt.savefig(f"{output_dir}/window_{window_size}_shift_{shift}.png")
+    plt.savefig(f"{out_dir}/history.png")
 
 
 def plot_confusion_matrix(cm, classes, title='Confusion Matrix', cmap=plt.cm.Blues):
@@ -252,7 +275,10 @@ def plot_confusion_matrix(cm, classes, title='Confusion Matrix', cmap=plt.cm.Blu
     plt.xlabel('Predicted Label')
 
 
-def dump_confusion_matrix(model, x, y, dataset, data_type, window_size, shift):
+def dump_confusion_matrix(model, x, y, dataset, data_type, args):
+    global output_dir
+    window_size = args.window_size
+    shift = args.shift
     pred = model.predict(x)
     pred = np.argmax(pred,axis=1)
     actual = np.argmax(y,axis=1)
@@ -263,8 +289,8 @@ def dump_confusion_matrix(model, x, y, dataset, data_type, window_size, shift):
     plot_confusion_matrix(cnf_mat,classes=class_names)
     plt.grid(None)
 
-    output_dir = f"./outputs/{dataset}"
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir)
+    out_dir = f"{output_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
     
-    plt.savefig(f"{output_dir}/confusiont_window_{window_size}_shift_{shift}_{data_type}.png")
+    plt.savefig(f"{out_dir}/confusiont_{data_type}.png")
