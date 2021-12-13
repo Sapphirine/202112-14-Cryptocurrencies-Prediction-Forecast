@@ -1,0 +1,50 @@
+<html>
+
+<head>
+	<title>Huge Transactions Monitor</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+</head>
+<body>
+	<section class="ftco-section">
+		<div id="demo" class="container">
+		</div>
+	</section>
+	
+	<script src="/js/jquery.min.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+
+	<script>
+	//$.get("http://34.75.110.94:8222/send")
+
+	var speed = 15;
+	var sizeLimit = 35;
+	var i = 0;
+
+	function typeWriter(txt, i) {
+	var text = "" + txt;
+		if (text.length !== undefined && i < text.length) {
+			document.getElementById("demo").innerHTML += text.charAt(i);
+			setTimeout(typeWriter, speed, text, i+1);
+		}
+	}
+
+	function showText(txt) {
+		if (i > sizeLimit) {
+			document.getElementById("demo").innerHTML = '';
+			i = 0;
+		}
+		document.getElementById("demo").innerHTML += txt;
+		document.getElementById("demo").innerHTML += "<br>";
+	i++;
+	}
+
+	var source = new EventSource("{{ url_for('sse.stream') }}");
+	source.addEventListener('whaleAlert', function(event) {
+		var data = JSON.parse(event.data);
+		//typeWriter(data.text, 0)
+		showText(data.text)
+	}, false);
+	</script>
+</body>
+</html>

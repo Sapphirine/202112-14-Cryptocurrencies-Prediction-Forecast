@@ -15,7 +15,6 @@ from rethinkdb import RethinkDB
 import configparser
 from binance.client import Client
 
-
 today = date_util.today().strftime("%Y-%m-%d")
 db_binance = "Binance"
 table_binance_tick = "Tick"

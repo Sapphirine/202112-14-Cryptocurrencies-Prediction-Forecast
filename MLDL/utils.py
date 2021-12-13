@@ -34,7 +34,7 @@ def create_train_test(df_train, args):
     if args.smooth:
         range_buy_sell(df_train, args.range_tolerance)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
-    X, Y, dates= slicing(df_train, window_size=window_size)
+    X, Y, dates = slicing(df_train, window_size=window_size)
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=0)
     dates_train = dates[:len(y_train)]
     dates_test = dates[len(y_train):]
