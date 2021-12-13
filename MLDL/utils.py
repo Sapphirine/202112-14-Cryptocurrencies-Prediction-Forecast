@@ -97,7 +97,7 @@ def get_text_sent():
                 "neuAvg": row[3],
                 })
 
-        return pd.DataFrame(rows)
+        return pd.DataFrame(rows).set_index("timestamp")
     except Exception as e:
         print(e)
 
