@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('-nf', '--n_filters', dest='n_filters', default=64, type=int)
     parser.add_argument('-fd', '--filter_width', dest='filter_width', default=2, type=int)
     parser.add_argument('-lr', '--learning_rate', dest='learning_rate', default=3e-6, type=float)
+    parser.add_argument('-lw', '--auto_loss_weight', dest='auto_loss_weight', default=1, type=int)
     
     args = parser.parse_args()
     dataset = args.dataset
@@ -47,12 +48,12 @@ if __name__ == '__main__':
         df_trend = get_trend()
         df_train = df_btc.join(df_wiki).join(df_trend).dropna()
     
-    X_train, y_train, X_test, y_test = create_train_test(df_train, args)
+    X_train, y_train, X_test, y_test, dates_train, dates_test = create_train_test(df_train, args)
     sequence_length = X_train.shape[1]
     nb_features = X_train.shape[-1]
     model = build_model(sequence_length, nb_features, args)
     #model.summary()
-    train_history, model = train_model(X_train, y_train, model, dataset, args)
+    train_history, model = train_model(X_train, y_train, model, args)
     show_final_history(train_history, dataset, args)
-    dump_confusion_matrix(model, X_train, y_train, dataset, "train", args)
-    dump_confusion_matrix(model, X_test, y_test, dataset, "test", args)
+    dump_confusion_matrix(model, X_train, y_train, dates_train, "train", args)
+    dump_confusion_matrix(model, X_test, y_test, dates_test, "test", args)

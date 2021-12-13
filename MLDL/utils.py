@@ -23,20 +23,24 @@ def get_available_devices():
     return [x.name for x in local_device_protos]
 
 
-def create_train_test(df_train, args):
+def create_train_test(df_train, args, smooth=False):
     test_size = args.test_size
     window_size = args.window_size
     shift = args.shift
     threshold = args.threshold
 
     df_train = labelling(df_train, shift, threshold)
+    if smooth:
+        range_buy_sell(df_train)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
-    X, Y = slicing(df_train, window_size=window_size)
+    X, Y, dates= slicing(df_train, window_size=window_size)
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=0)
+    dates_train = dates[:len(y_train)]
+    dates_test = dates[len(y_train):]
     #One-hot encode the labels
     y_train = to_categorical(y_train)
     y_test= to_categorical(y_test)
-    return X_train, y_train, X_test, y_test
+    return X_train, y_train, X_test, y_test, dates_train, dates_test
 
 
 def get_wiki():
@@ -45,10 +49,11 @@ def get_wiki():
     return df_wiki
 
 
-def get_trend():
+def get_trend(freq="date"):
     df_trend = pd.read_csv(f"{data_dir}/trend.csv")
-    df_trend = df_trend.assign(Date=df_trend['datetime'].str.split(' ',expand=True)[0])
-    df_trend = df_trend.groupby("Date").sum("trend")[["trend"]]
+    if freq == "date":
+        df_trend = df_trend.assign(Date=df_trend['datetime'].str.split(' ',expand=True)[0])
+        df_trend = df_trend.groupby("Date").sum("trend")[["trend"]]
     return df_trend
 
 
@@ -57,6 +62,39 @@ def get_btc():
     df_btc = df_btc[COLS]
     df_btc = df_btc.set_index("Date")
     return df_btc
+
+
+def range_buy_sell(df):
+    buy_point = []
+    sell_point = []
+    for data in df.iterrows():
+        price = data[1]['Close']
+        label = data[1]['Label']
+        if label == 1:
+            buy_point.append(price)
+        elif label == 2:
+            sell_point.append(price)
+
+    buy_pos = 0
+    sell_pos = -1
+    for i, data in df.iterrows():
+        price = data['Close']
+        label = data['Label']
+        if label == 1:
+            sell_pos += 1
+        elif label == 2:
+            buy_pos += 1
+            if buy_pos == len(buy_point):
+                break
+        else:
+            cur_buy = buy_point[buy_pos]
+            if abs(price - cur_buy)/cur_buy <= 0.03:
+                df.at[i,'Label'] = 1
+            if sell_pos == -1:
+                continue
+            cur_sell = sell_point[sell_pos]
+            if abs(cur_sell - price)/cur_sell <= 0.03:
+                df.at[i,'Label'] = 2
 
 
 def collect_peaks(data, threshold, price_col="Close"):
@@ -128,14 +166,16 @@ def labelling(data, shift, threshold):
 def slicing(data, label_col="Label", window_size=30):
     X = []
     Y = []
+    dates = []
     
     for i in range(len(data) - window_size + 1):
         x = data.iloc[i: i+window_size]
         y = x.tail(1)[label_col]
         X.append(x.drop([label_col], axis=1).to_numpy())
         Y.append(y.to_numpy())
+        dates.append(x.tail(1).index[0])
         
-    return np.array(X), np.array(Y)
+    return np.array(X), np.array(Y), dates
 
 
 def build_model(sequence_length, nb_features, args):
@@ -186,7 +226,7 @@ def build_model(sequence_length, nb_features, args):
     out = Flatten()(out)
     
     #Final dense layer
-    out= Dense(len(class_names), activation="softmax")(out)
+    out = Dense(len(class_names), activation="softmax")(out)
     
     model = Model(history_seq, out)
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -198,41 +238,37 @@ def build_model(sequence_length, nb_features, args):
     return model
 
 
-def train_model(X_train, y_train, model, dataset, args):
-    global model_dir
-    window_size = args.window_size
-    shift = args.shift
+def train_model(X_train, y_train, model, args):
     batch_size = args.batch_size
     epochs = args.epochs
     patience = args.patience
     valid_size = args.valid_size
     device = args.device
 
-    if not os.path.isdir(f"{model_dir}/{dataset}"):
-        os.makedirs(f"{model_dir}/{dataset}")
-
-    model_name = f"{model_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
-
+    model_name = get_model_name(args)
     checkpoint = ModelCheckpoint(f"{model_name}.h5", monitor='val_loss', verbose=1, save_best_only=True, mode='max')
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=patience)
     
-    weight_val = len(np.where(y_train == np.array([1,0,0]))[0]) / len(np.where(y_train != np.array([1,0,0]))[0])
-    sample_weight = np.ones(shape=(len(y_train),))
-    sample_weight[np.where(y_train != np.array([1,0,0]))[0]] = weight_val
+    sample_weight = None
+    if args.auto_loss_weight:
+        weight_val = len(np.where(y_train == np.array([1,0,0]))[0]) / len(np.where(y_train != np.array([1,0,0]))[0])
+        sample_weight = np.ones(shape=(len(y_train),))
+        sample_weight[np.where(y_train != np.array([1,0,0]))[0]] = weight_val
     
     with tf.device(device):
         train_history = model.fit(X_train, y_train,
-                           steps_per_epoch=len(X_train)//batch_size,
-                           epochs=epochs,
-                           sample_weight=sample_weight,
-                           shuffle=True,
-                           verbose=1, validation_split=valid_size, callbacks=[early_stopping, checkpoint])
+            steps_per_epoch=len(X_train)//batch_size,
+            epochs=epochs,
+            sample_weight=sample_weight,
+            shuffle=True,
+            verbose=1, validation_split=valid_size,
+            callbacks=[early_stopping, checkpoint]
+            )
     return train_history, model
 
 
 def show_final_history(history, dataset, args):
-    global output_dir
     window_size = args.window_size
     shift = args.shift
     plt.style.use("ggplot")
@@ -247,10 +283,7 @@ def show_final_history(history, dataset, args):
     ax[0].legend(loc='upper right')
     ax[1].legend(loc='lower right')
     
-    out_dir = f"{output_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
-    if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
-    
+    out_dir = get_out_dir(args)
     plt.savefig(f"{out_dir}/history.png")
 
 
@@ -275,13 +308,14 @@ def plot_confusion_matrix(cm, classes, title='Confusion Matrix', cmap=plt.cm.Blu
     plt.xlabel('Predicted Label')
 
 
-def dump_confusion_matrix(model, x, y, dataset, data_type, args):
-    global output_dir
+def dump_confusion_matrix(model, x, y, dates, data_type, args):
     window_size = args.window_size
     shift = args.shift
+    dataset = args.dataset
+
     pred = model.predict(x)
-    pred = np.argmax(pred,axis=1)
-    actual = np.argmax(y,axis=1)
+    pred = np.argmax(pred, axis=1)
+    actual = np.argmax(y, axis=1)
     cnf_mat = confusion_matrix(actual, pred)
     np.set_printoptions(precision=2)
     
@@ -289,8 +323,37 @@ def dump_confusion_matrix(model, x, y, dataset, data_type, args):
     plot_confusion_matrix(cnf_mat,classes=class_names)
     plt.grid(None)
 
-    out_dir = f"{output_dir}/{dataset}/win_{window_size}_sh_{shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    out_dir = get_out_dir(args)
+    plt.savefig(f"{out_dir}/confusiont_{data_type}.png")
+    dump_pred(model, x, dates, data_type, args, pred)
+
+
+def dump_pred(model, x, dates, data_type, args, pred=None):
+    out_dir = get_out_dir(args)
+    if pred is None:
+        pred = model.predict(x)
+        pred = np.argmax(pred, axis=1)
+    df_pred = pd.DataFrame(list(zip(dates, pred)), columns=["date", "pred"])
+    df_pred = df_pred.set_index("date")
+    df_pred.to_csv(f"{out_dir}/pred_{data_type}.csv")
+
+
+def load_model(args):
+    model_name = get_model_name(args)
+    return tf.keras.models.load_model(f"{model_name}.h5")
+
+
+def get_out_dir(args):
+    global output_dir
+    out_dir = f"{output_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
-    
-    plt.savefig(f"{out_dir}/confusiont_{data_type}.png")
+    return out_dir
+
+
+def get_model_name(args):
+    global model_dir
+    if not os.path.isdir(f"{model_dir}/{args.dataset}"):
+        os.makedirs(f"{model_dir}/{args.dataset}")
+    model_name = f"{model_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    return model_name
