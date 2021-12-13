@@ -15,6 +15,7 @@ import tensorflow_addons as tfa
 from tensorflow.python.client import device_lib
 import matplotlib.pyplot as plt
 import itertools
+import pandas_gbq
 from settings import *
 
 
@@ -23,15 +24,15 @@ def get_available_devices():
     return [x.name for x in local_device_protos]
 
 
-def create_train_test(df_train, args, smooth=False):
+def create_train_test(df_train, args):
     test_size = args.test_size
     window_size = args.window_size
     shift = args.shift
     threshold = args.threshold
 
     df_train = labelling(df_train, shift, threshold)
-    if smooth:
-        range_buy_sell(df_train)
+    if args.smooth:
+        range_buy_sell(df_train, args.range_tolerance)
     print(df_train.query("Label == 1").shape, df_train.query("Label == 2").shape, df_train.query("Label == 0").shape)
     X, Y, dates= slicing(df_train, window_size=window_size)
     X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=0)
@@ -49,22 +50,59 @@ def get_wiki():
     return df_wiki
 
 
-def get_trend(freq="date"):
+def get_trend(args):
+    freq = args.freq
     df_trend = pd.read_csv(f"{data_dir}/trend.csv")
-    if freq == "date":
+    if freq == "day":
         df_trend = df_trend.assign(Date=df_trend['datetime'].str.split(' ',expand=True)[0])
         df_trend = df_trend.groupby("Date").sum("trend")[["trend"]]
+    elif freq == "1hour":
+        df_trend = df_trend.set_index("timestamp").drop(["datetime"], axis=1)
     return df_trend
 
 
-def get_btc():
-    df_btc = pd.read_csv(f"{data_dir}/btc.csv")
-    df_btc = df_btc[COLS]
-    df_btc = df_btc.set_index("Date")
+def get_btc(args):
+    freq = args.freq
+    if freq == "day":
+        df_btc = pd.read_csv(f"{data_dir}/btc.csv")
+        df_btc = df_btc[COLS]
+        df_btc = df_btc.set_index("Date")
+    elif freq == "1hour":
+        cols_remove = ["trade_id", "symbol", "ignore", "time_close"]
+        df_btc = pd.read_csv(f"{data_dir}/btc_1hr.csv")
+        df_btc = df_btc.drop(cols_remove, axis=1)
+        df_btc.time_open = (df_btc.time_open/1000).astype(int)
+        df_btc = df_btc.rename(columns={"time_open": "timestamp"})
+        df_btc = df_btc.set_index("timestamp")
     return df_btc
 
 
-def range_buy_sell(df):
+def get_text_sent():
+    try:
+        # Perform a query.
+        QUERY = '''
+            SELECT TIMESTAMP_TRUNC(time, HOUR, "UTC") AS hour, 
+                avg(pos) as posAvg, 
+                avg(neg) as negAvg, 
+                avg(neu) as neuAvg,
+                avg(compound) as compoundAvg
+            FROM crypto.btc group by hour;
+        '''
+        rows = []
+        for row in pandas_gbq.read_gbq(query=QUERY, project_id='e6893-hw0').values.tolist():
+            rows.append({
+                "timestamp": int(row[0].timestamp()),
+                "posAvg": row[1],
+                "negAvg": row[2],
+                "neuAvg": row[3],
+                })
+
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(e)
+
+
+def range_buy_sell(df, tolerance=0.03):
     buy_point = []
     sell_point = []
     for data in df.iterrows():
@@ -82,18 +120,20 @@ def range_buy_sell(df):
         label = data['Label']
         if label == 1:
             sell_pos += 1
+            if sell_pos == len(sell_point):
+                break
         elif label == 2:
             buy_pos += 1
             if buy_pos == len(buy_point):
                 break
         else:
             cur_buy = buy_point[buy_pos]
-            if abs(price - cur_buy)/cur_buy <= 0.03:
+            if abs(price - cur_buy)/cur_buy <= tolerance:
                 df.at[i,'Label'] = 1
             if sell_pos == -1:
                 continue
             cur_sell = sell_point[sell_pos]
-            if abs(cur_sell - price)/cur_sell <= 0.03:
+            if abs(cur_sell - price)/cur_sell <= tolerance:
                 df.at[i,'Label'] = 2
 
 
@@ -345,7 +385,7 @@ def load_model(args):
 
 def get_out_dir(args):
     global output_dir
-    out_dir = f"{output_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    out_dir = f"{output_dir}/{args.dataset}/{args.freq}_thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
     return out_dir
@@ -355,5 +395,5 @@ def get_model_name(args):
     global model_dir
     if not os.path.isdir(f"{model_dir}/{args.dataset}"):
         os.makedirs(f"{model_dir}/{args.dataset}")
-    model_name = f"{model_dir}/{args.dataset}/thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
+    model_name = f"{model_dir}/{args.dataset}/{args.freq}_thr_{args.threshold}_autow_{args.auto_loss_weight}_win_{args.window_size}_sh_{args.shift}_lr_{args.learning_rate}_bch_{args.batch_size}_ep_{args.epochs}_filt_{args.n_filters}_{args.filter_width}_mdil_{args.max_dilation}"
     return model_name
