@@ -16,7 +16,26 @@ from tensorflow.python.client import device_lib
 import matplotlib.pyplot as plt
 import itertools
 import pandas_gbq
+from scipy.stats import entropy
 from settings import *
+
+
+def get_dataset(args):
+    dataset = args.dataset
+    df_btc = get_btc(args)
+    if dataset == 'btc':
+        df = df_btc 
+    elif dataset == 'btc_trend':
+        df_trend = get_trend(args)
+        df = df_btc.join(df_trend).dropna()
+    elif dataset == 'btc_wiki':
+        df_wiki = get_wiki()
+        df = df_btc.join(df_wiki).dropna()
+    elif dataset == 'btc_trend_wiki':
+        df_wiki = get_wiki()
+        df_trend = get_trend(args)
+        df = df_btc.join(df_wiki).join(df_trend).dropna()
+    return df
 
 
 def get_available_devices():
@@ -372,8 +391,12 @@ def dump_pred(model, x, dates, data_type, args, pred=None):
     out_dir = get_out_dir(args)
     if pred is None:
         pred = model.predict(x)
-        pred = np.argmax(pred, axis=1)
-    df_pred = pd.DataFrame(list(zip(dates, pred)), columns=["date", "pred"])
+        pred_max = np.argmax(pred, axis=1)
+        entropies = [entropy(p, base=3) for p in pred]
+    df_pred_raw = pd.DataFrame(pred, columns=["hold", "buy", "sell"])
+    df_pred = pd.DataFrame(list(zip(dates, pred_max)), columns=["date", "pred"])
+    df_pred = df_pred.assign(entropy=entropies)
+    df_pred = pd.concat([df_pred, df_pred_raw], axis=1)
     df_pred = df_pred.set_index("date")
     df_pred.to_csv(f"{out_dir}/pred_{data_type}.csv")
 
