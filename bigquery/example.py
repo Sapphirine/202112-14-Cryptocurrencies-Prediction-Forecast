@@ -3,6 +3,20 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = './config/gcp_key.json'
 import pandas_gbq
 
 
+'''
+reference query 
+twitter
+    SELECT TIMESTAMP_TRUNC(time, HOUR, "UTC") AS hour, 
+            avg(pos) as posAvg, 
+            avg(neg) as negAvg, 
+            avg(neu) as neuAvg,
+            avg(compound) as compoundAvg
+    FROM crypto.btc group by hour;
+reddit
+
+'''
+
+
 def query():
     try:
         # Perform a query.
