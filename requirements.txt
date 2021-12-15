@@ -4,3 +4,5 @@ google.cloud.bigquery
 pandas
 requests
 flask
+flask_sse
+RethinkDB
