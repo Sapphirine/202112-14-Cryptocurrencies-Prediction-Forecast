@@ -21,6 +21,7 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'statics')
 app = Flask(__name__, template_folder=tmpl_dir, static_folder=static_dir, static_url_path='')
 app.config["REDIS_URL"] = "redis://localhost"
 app.register_blueprint(sse, url_prefix='/stream')
+refreshRate = 30
 
 
 class FlaskThread(Thread):
@@ -48,10 +49,10 @@ def fetch():
     df.columns = whaleAlertCols
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
-    # df_filtered = df[df['symbol'] == 'eth']
-    # if df_filtered.shape[0] == 0:
-    #     return None
-    return json.loads(df.to_json(orient="records"))
+    df_filtered = df[df['symbol'] == 'btc']
+    if df_filtered.shape[0] == 0:
+         return None
+    return json.loads(df_filtered.to_json(orient="records"))
 
 
 @app.route("/whaleProducer")
@@ -62,7 +63,7 @@ def whaleProducer():
         if rows:
             for row in rows:
                 yield f"id: 1\ndata: {json.dumps(row)}\nevent: whale\n\n"
-            sleep(10)
+            sleep(refreshRate)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 
