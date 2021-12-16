@@ -48,7 +48,7 @@
 	eventSource.addEventListener("whale", function(e) {
 		data = JSON.parse(e.data)
 		console.log("whale!");
-		showText(data);
+		showText(data.whale);
 	  }, true)
 	</script>
 </body>

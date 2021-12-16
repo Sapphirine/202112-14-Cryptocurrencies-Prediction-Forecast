@@ -61,8 +61,8 @@ def fetch():
 def whaleProducer():
   def respond_to_client():
     while True:
-        _data = fetch()
-        print("whaleProducer: ", _data)
+        _data = json.dumps({"whale":fetch()})
+        print("whaleProducer: ", type(_data), _data)
         yield f"id: 1\ndata: {_data}\nevent: whale\n\n"
         sleep(1)
   return Response(respond_to_client(), mimetype='text/event-stream')
