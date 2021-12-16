@@ -61,9 +61,9 @@ def fetch():
 def whaleProducer():
   def respond_to_client():
     while True:
-        _data = fetch()
-        print(type(_data), "whale")
-        yield f"id: 1\ndata: {_data}\nevent: whale\n\n"
+        rows = fetch()
+        for row in rows:
+            yield f"id: 1\ndata: {row}\nevent: whale\n\n"
         sleep(10)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
