@@ -128,7 +128,8 @@
 
 		let unix_timestamp = parseInt(rows['timestamp'])
 		var date = new Date(unix_timestamp * 1000);
-		var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+		var months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+		var year = date.getFullYear();
 	    var month = months[date.getMonth()];
 		var day = date.getDate();
 		// Hours part from the timestamp
@@ -139,7 +140,7 @@
 		var seconds = "0" + date.getSeconds();
 
 		// Will display time in 10:30:23 format
-		var formattedTime = day + '/' + month + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+		var formattedTime = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
 
 		document.getElementById("demo").innerHTML += "<table><tr>"
 		document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;&emsp;</td>";
@@ -156,7 +157,7 @@
 			config.data.datasets[0].data.shift();
 		}
 		config.data.labels.push(formattedTime);
-		config.data.datasets[0].data.push(rows['price']);
+		config.data.datasets[0].data.push(parseInt(rows['price']));
 		lineChart.update();
 	  }, true)
 

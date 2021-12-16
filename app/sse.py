@@ -39,11 +39,6 @@ def index():
     context = {}
     return render_template("index.html", **context)
 
-#@app.route('/send')
-#def send():
-#    #{'action': 'transfer', 'dest': 'binance', 'id': '1744010719', 'price': '119.09', 'source': 'binance', 'symbol': 'btc', 'timestamp': '1637271425', 'usd': '6889170'}
-#    sse.publish({"text": "Hello!"}, type='whaleAlert')
-#    return "Message sent!"
 
 def fetch():
     res = req.get(whaleAlertUrl)
@@ -54,10 +49,10 @@ def fetch():
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
     print(df)
-    df_filtered = df[df['symbol'] == 'eth']
-    if df_filtered.shape[0] == 0:
-        return None
-    return json.loads(df_filtered.to_json(orient="records"))
+    # df_filtered = df[df['symbol'] == 'eth']
+    # if df_filtered.shape[0] == 0:
+    #     return None
+    return json.loads(df.to_json(orient="records"))
 
 
 @app.route("/whaleProducer")
