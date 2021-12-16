@@ -54,7 +54,7 @@ def fetch():
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
     print(df)
-    df_filtered = df[df['symbol'] == 'btc']
+    df_filtered = df[df['symbol'] == 'eth']
     if df_filtered.shape[0] == 0:
         return None
     return json.loads(df_filtered.to_json(orient="records"))
