@@ -56,7 +56,7 @@ def fetch():
     df_filtered = df[df['symbol'] == 'btc']
     if df_filtered.shape[0] == 0:
         return None
-    return json.loads(df.to_json(orient="records"))
+    return json.loads(df_filtered.to_json(orient="records"))
 
 
 @app.route("/whaleProducer")
