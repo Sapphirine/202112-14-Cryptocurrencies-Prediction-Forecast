@@ -4,9 +4,29 @@
 	<title>Huge Transactions Monitor</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">
 </head>
 <body>
-	<h2>Huge transactions alerts</h2>
+	<h2>Huge transactions real-time alerts</h2>
+	<div class="container">
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<canvas id="canvas"></canvas>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!--suppress JSUnresolvedLibraryURL -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+	<!--suppress JSUnresolvedLibraryURL -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+	<!--suppress JSUnresolvedLibraryURL -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+
 	<section class="ftco-section">
 		<div id="demo" class="container">
 			<table>
@@ -27,9 +47,7 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.min.js"></script>
 
 	<script>
-	//$.get("http://34.75.110.94:8222/send")
-	// trigger the route /send
-	var eventSource = new EventSource("/whaleProducer");
+	
 	var speed = 15;
 	var sizeLimit = 35;
 	var i = 0;
@@ -52,8 +70,59 @@
 	i++;
 	}
 
-	var whaleDiv = document.getElementById('whaleText');
+	//chartJs plot
+	$(document).ready(function () {
+		const config = {
+			type: 'line',
+			data: {
+				labels: [],
+				datasets: [{
+					label: "Random Dataset",
+					backgroundColor: 'rgb(255, 99, 132)',
+					borderColor: 'rgb(255, 99, 132)',
+					data: [],
+					fill: false,
+				}],
+			},
+			options: {
+				responsive: true,
+				title: {
+					display: true,
+					text: 'Creating Real-Time Charts with Flask'
+				},
+				tooltips: {
+					mode: 'index',
+					intersect: false,
+				},
+				hover: {
+					mode: 'nearest',
+					intersect: true
+				},
+				scales: {
+					xAxes: [{
+						display: true,
+						scaleLabel: {
+							display: true,
+							labelString: 'Time'
+						}
+					}],
+					yAxes: [{
+						display: true,
+						scaleLabel: {
+							display: true,
+							labelString: 'Value'
+						}
+					}]
+				}
+			}
+		};
 
+	const context = document.getElementById('canvas').getContext('2d');
+	const lineChart = new Chart(context, config);
+
+	// create a event source
+	var eventSource = new EventSource("/whaleProducer");
+	// whale text producer
 	eventSource.addEventListener("whale", function(e) {
 		rows = JSON.parse(e.data);
 
@@ -74,15 +143,23 @@
 
 		document.getElementById("demo").innerHTML += "<table><tr>"
 		document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['symbol'] + "&emsp;&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['symbol'] + "&emsp;&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['price'] + "&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['usd'] + "&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['action'] + "&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['source'] + "&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['dest'] + "</td>";
 		document.getElementById("demo").innerHTML += "</tr></table>"
-
+		// plot Chart
+		if (config.data.labels.length === 20) {
+			config.data.labels.shift();
+			config.data.datasets[0].data.shift();
+		}
+		config.data.labels.push(formattedTime);
+		config.data.datasets[0].data.push(rows['price']);
+		lineChart.update();
 	  }, true)
+
 	</script>
 </body>
 </html>
