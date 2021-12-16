@@ -18,7 +18,7 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'statics')
 app = Flask(__name__, template_folder=tmpl_dir, static_folder=static_dir, static_url_path='')
 app.config["REDIS_URL"] = "redis://localhost"
 app.register_blueprint(sse, url_prefix='/stream')
-
+counter = 1
 
 class FlaskThread(Thread):
     def __init__(self, *args, **kwargs):
@@ -60,7 +60,19 @@ def send_alert():
                 sse.publish({"text": text}, type='whaleAlert')
                 
     return Response(update(), mimetype='text/event-stream')
-                
+
+
+@app.route("/listen")
+def listen():
+
+  def respond_to_client():
+    while True:
+        global counter
+        counter += 1
+        _data = json.dumps({"counter":counter})
+        yield f"id: 1\ndata: {_data}\nevent: online\n\n"
+        sleep(0.5)
+  return Response(respond_to_client(), mimetype='text/event-stream')
 
 
 if __name__ == "__main__":

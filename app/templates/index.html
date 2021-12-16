@@ -17,7 +17,7 @@
 	<script>
 	//$.get("http://34.75.110.94:8222/send")
 	// trigger the route /send
-	var eventSource = new EventSource("/send");
+	var eventSource = new EventSource("/listen");
 
 	var speed = 15;
 	var sizeLimit = 35;
@@ -47,6 +47,16 @@
 		//typeWriter(data.text, 0)
 		showText(data.text)
 	}, false);
+
+
+    eventSource.addEventListener("message", function(e) {
+		console.log(e.data)
+	  }, false)
+  
+	eventSource.addEventListener("online", function(e) {
+		data = JSON.parse(e.data)
+		document.querySelector("#counter").innerText = data.counter
+	  }, true)
 	</script>
 </body>
 </html>
