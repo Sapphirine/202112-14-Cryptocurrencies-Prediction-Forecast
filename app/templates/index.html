@@ -6,9 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 </head>
 <body>
-	<h1>APP</h1>
-  	<div id="counter"></div>
-	<div id="whaleText"></div>
+	<h2>Huge transactions alerts</h2>
 	<section class="ftco-section">
 		<div id="demo" class="container">
 		</div>
@@ -48,7 +46,18 @@
 	eventSource.addEventListener("whale", function(e) {
 		//data = JSON.parse(e.data)
 		//console.log("whale!");
-		showText(e.data);
+		rows = e.data
+		document.getElementById("demo").innerHTML += "<table><tr>"
+		for (var idx = 0; i < rows.length; idx ++){
+			document.getElementById("demo").innerHTML += "<td>" + rows[idx]['symbol'] + "&emsp;</td>";
+			document.getElementById("demo").innerHTML += "<td>" + rows[idx]['price'] + "&emsp;</td>";
+			document.getElementById("demo").innerHTML += "<td>" + rows[idx]['transfer'] + "&emsp;</td>";
+			document.getElementById("demo").innerHTML += "<td>" + rows[idx]['source'] + "&emsp;</td>";
+			document.getElementById("demo").innerHTML += "<td>" + rows[idx]['dest'] + "&emsp;</td>";
+		} 
+		document.getElementById("demo").innerHTML += "</tr></table>"
+
+
 	  }, true)
 	</script>
 </body>
