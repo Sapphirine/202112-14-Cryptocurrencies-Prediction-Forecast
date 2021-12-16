@@ -68,26 +68,6 @@ def whaleProducer():
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 
-@app.route('/send')
-def send_alert():
-    def update():
-        r = RethinkDB()
-        conn = r.connect(host=host_rtk, port=port_rtk)
-        conn.repl()
-        for change in r.db(db).table(table_whaler_alert).changes().run(conn):
-            if change["new_val"] and not change["old_val"]:
-                data = change["new_val"]
-                dt = int(data["timestamp"])
-                dt = datetime.fromtimestamp(dt).strftime("%Y-%m-%d %H:%M:%S")
-                source = data['source'] if len(data['source']) > 0 else 'unknown'
-                dest = data['dest'] if len(data['dest']) > 0 else 'unknown'
-                text = f"{dt} {data['price']} {data['symbol']} ({data['usd']} USD) from {source} to {dest}"
-                yield text
-                sse.publish({"text": text}, type='whaleAlert')
-                
-    return Response(update(), mimetype='text/event-stream')
-
-
 @app.route("/listen")
 def listen():
   def respond_to_client():

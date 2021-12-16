@@ -20,7 +20,6 @@
 	<script>
 	//$.get("http://34.75.110.94:8222/send")
 	// trigger the route /send
-	var eventSource1 = new EventSource("/listen");
 	var eventSource2 = new EventSource("/whaleProducer");
 	var speed = 15;
 	var sizeLimit = 35;
@@ -44,21 +43,12 @@
 	i++;
 	}
 
-	var source = new EventSource("{{ url_for('sse.stream') }}");
-	source.addEventListener('whaleAlert', function(event) {
-		var data = JSON.parse(event.data);
-		//typeWriter(data.text, 0)
-		showText(data.text)
-	}, false);
-  
-	eventSource.addEventListener("online", function(e) {
-		data = JSON.parse(e.data)
-		document.querySelector("#counter").innerText = data.counter
-	  }, true)
+	var whaleDiv = document.getElementById('whaleText');
 
 	eventSource.addEventListener("whale", function(e) {
 		data = JSON.parse(e.data)
-		document.querySelector("#whaleText").innerText = data
+		console.log("whale!");
+		showText(data);
 	  }, true)
 	</script>
 </body>
