@@ -21,7 +21,7 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'statics')
 app = Flask(__name__, template_folder=tmpl_dir, static_folder=static_dir, static_url_path='')
 app.config["REDIS_URL"] = "redis://localhost"
 app.register_blueprint(sse, url_prefix='/stream')
-counter = 1
+
 
 class FlaskThread(Thread):
     def __init__(self, *args, **kwargs):
@@ -69,7 +69,7 @@ def whaleProducer():
             for row in rows:
                 print(type(row), row)
                 yield f"id: 1\ndata: {json.dumps(row)}\nevent: whale\n\n"
-            sleep(1)
+            sleep(10)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 
