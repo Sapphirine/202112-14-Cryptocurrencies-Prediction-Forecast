@@ -44,12 +44,11 @@
 	var whaleDiv = document.getElementById('whaleText');
 
 	eventSource.addEventListener("whale", function(e) {
-		//data = JSON.parse(e.data)
-		//console.log("whale!");
-		rows = e.data;
-		document.getElementById("demo").innerHTML += "<td>" + rows + "&emsp;</td>";
+		rows = JSON.parse(JSON.stringify(e.data));
+		console.log(typeof rows);
+		//document.getElementById("demo").innerHTML += "<td>" + rows + "&emsp;</td>";
 		//console.log(JSON.parse(rows));
-		/*
+		
 		document.getElementById("demo").innerHTML += "<table><tr>"
 		for (var idx = 0; i < rows.length; idx ++){
 			console.log("whaleeee");
@@ -57,7 +56,7 @@
 			document.getElementById("demo").innerHTML += "<td>" + rows[idx] + "&emsp;</td>";
 		} 
 		document.getElementById("demo").innerHTML += "</tr></table>"
-		*/
+		
 
 	  }, true)
 	</script>

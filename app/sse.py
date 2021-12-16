@@ -67,17 +67,5 @@ def whaleProducer():
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 
-@app.route("/listen")
-def listen():
-  def respond_to_client():
-    while True:
-        global counter
-        counter += 1
-        _data = json.dumps({"counter":counter})
-        yield f"id: 1\ndata: {_data}\nevent: online\n\n"
-        sleep(0.5)
-  return Response(respond_to_client(), mimetype='text/event-stream')
-
-
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8222, debug=True)
