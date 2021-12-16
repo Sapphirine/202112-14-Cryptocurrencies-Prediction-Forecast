@@ -45,6 +45,9 @@ def index():
 @app.route('/send')
 def send_alert():
     def update():
+        r = RethinkDB()
+        conn = r.connect(host=host_rtk, port=port_rtk)
+        conn.repl()
         for change in r.db(db).table(table_whaler_alert).changes().run(conn):
             if change["new_val"] and not change["old_val"]:
                 data = change["new_val"]
@@ -61,9 +64,6 @@ def send_alert():
 
 
 if __name__ == "__main__":
-    r = RethinkDB()
-    conn = r.connect(host=host_rtk, port=port_rtk)
-    conn.repl()
     
     http_server = WSGIServer(("localhost", 8222), app)
     http_server.serve_forever()
