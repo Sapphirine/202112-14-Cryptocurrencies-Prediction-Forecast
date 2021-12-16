@@ -69,7 +69,7 @@ def whaleProducer():
             for row in rows:
                 print(type(row), row)
                 yield f"id: 1\ndata: {json.dumps(row)}\nevent: whale\n\n"
-            sleep(10)
+            sleep(30)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 

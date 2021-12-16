@@ -14,9 +14,9 @@
 					<td>Time &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</td>
 					<td>symbol &emsp;&emsp;&emsp;</td> 
 					<td>price &emsp;&emsp;&emsp;</td>
-					<td>usd &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</td>
-					<td>action &emsp;&emsp;</td>
-					<td>source &emsp;&emsp;</td>
+					<td>usd &emsp;&emsp;&emsp;</td>
+					<td>action &emsp;&emsp;&emsp;</td>
+					<td>source &emsp;&emsp;&emsp;</td>
 					<td>dest &emsp;</td>
 				</tr>
 			</table>
@@ -73,13 +73,13 @@
 		var formattedTime = day + '/' + month + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
 
 		document.getElementById("demo").innerHTML += "<table><tr>"
-		document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['symbol'] + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['price'] + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['usd'] + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['action'] + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['source'] + "&emsp;</td>";
-		document.getElementById("demo").innerHTML += "<td>" + rows['dest'] + "&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['symbol'] + "&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['price'] + "&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['usd'] + "&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['action'] + "&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['source'] + "&emsp;&emsp;&emsp;</td>";
+		document.getElementById("demo").innerHTML += "<td>" + rows['dest'] + "&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "</tr></table>"
 
 	  }, true)
