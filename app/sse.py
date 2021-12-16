@@ -10,9 +10,12 @@ from rethinkdb import RethinkDB
 from threading import Thread
 from datetime import datetime
 from settings import *
+import requests as req
+import pandas as pd
+import json
 
-
-
+whaleAlertUrl = "https://api.whale-alert.io/feed.csv"
+whaleAlertCols = ["id", "timestamp", "symbol", "price", "usd", "action", "source", "dest"]
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'statics')
 app = Flask(__name__, template_folder=tmpl_dir, static_folder=static_dir, static_url_path='')
@@ -42,6 +45,27 @@ def index():
 #    sse.publish({"text": "Hello!"}, type='whaleAlert')
 #    return "Message sent!"
 
+def fetch():
+    res = req.get(whaleAlertUrl)
+    recs = [rec.split(",") for rec in res.text.split("\n")]
+    df = pd.DataFrame(recs)
+    df = df.drop([7, 9], axis=1)
+    df.columns = whaleAlertCols
+    df.price = df.price.astype(float)
+    df.usd = df.usd.astype(float)
+    return json.loads(df.to_json(orient="records"))
+
+
+@app.route("/whaleProducer")
+def whaleProducer():
+  def respond_to_client():
+    while True:
+        _data = fetch()
+        yield f"id: 1\ndata: {_data}\nevent: whale\n\n"
+        sleep(2)
+  return Response(respond_to_client(), mimetype='text/event-stream')
+
+
 @app.route('/send')
 def send_alert():
     def update():
@@ -64,7 +88,6 @@ def send_alert():
 
 @app.route("/listen")
 def listen():
-
   def respond_to_client():
     while True:
         global counter
