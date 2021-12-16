@@ -10,7 +10,7 @@ from rethinkdb import RethinkDB
 from threading import Thread
 from datetime import datetime
 from settings import *
-from gevent.pywsgi import WSGIServer
+
 
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
@@ -65,10 +65,6 @@ def send_alert():
 
 if __name__ == "__main__":
     
-    http_server = WSGIServer(("localhost", 8222), app)
-    http_server.serve_forever()
-
-    '''
     import click
     
     @click.command()
@@ -85,4 +81,3 @@ if __name__ == "__main__":
     #FlaskThread(target=send_alert).start()
     print("run")
     run()
-    '''
