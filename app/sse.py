@@ -48,7 +48,6 @@ def fetch():
     df.columns = whaleAlertCols
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
-    print(df)
     # df_filtered = df[df['symbol'] == 'eth']
     # if df_filtered.shape[0] == 0:
     #     return None
@@ -62,9 +61,8 @@ def whaleProducer():
         rows = fetch()
         if rows:
             for row in rows:
-                print(type(row), row)
                 yield f"id: 1\ndata: {json.dumps(row)}\nevent: whale\n\n"
-            sleep(30)
+            sleep(10)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 

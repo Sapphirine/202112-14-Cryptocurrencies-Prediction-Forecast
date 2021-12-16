@@ -1,9 +1,8 @@
-<html>
 
+<html lang="en">
 <head>
-	<title>Huge Transactions Monitor</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta charset="UTF-8">
+    <title>Huge Transactions Monitor</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">
 </head>
@@ -95,8 +94,9 @@
 	
 			const context = document.getElementById('canvas').getContext('2d');
 			const lineChart = new Chart(context, config);
-			const source = new EventSource("/whaleProducer");
-			source.onmessage = function (event) {
+			var source = new EventSource("/whaleProducer");
+			source.addEventListener("whale", function(event) {
+				console.log(event.data);
 				rows = JSON.parse(event.data);
 				let unix_timestamp = parseInt(rows['timestamp'])
 				var date = new Date(unix_timestamp * 1000);
@@ -110,10 +110,8 @@
 				var minutes = "0" + date.getMinutes();
 				// Seconds part from the timestamp
 				var seconds = "0" + date.getSeconds();
-
-				// Will display time in 10:30:23 format
 				var formattedTime = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-
+	
 				document.getElementById("demo").innerHTML += "<table><tr>"
 				document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;&emsp;</td>";
 				document.getElementById("demo").innerHTML += "<td>" + rows['symbol'] + "&emsp;&emsp;&emsp;&emsp;&emsp;</td>";
@@ -127,11 +125,12 @@
 					config.data.labels.shift();
 					config.data.datasets[0].data.shift();
 				}
-				config.data.labels.push(data.time);
-				config.data.datasets[0].data.push(data.value);
+				config.data.labels.push(formattedTime);
+				config.data.datasets[0].data.push(parseInt(rows['price']));
 				lineChart.update();
-			}
+			}, true)
 		});
+
 
 
 	</script>

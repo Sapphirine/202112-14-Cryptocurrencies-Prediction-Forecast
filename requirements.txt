@@ -6,3 +6,5 @@ requests
 flask
 flask_sse
 RethinkDB
+WSGIServer
+gevent
