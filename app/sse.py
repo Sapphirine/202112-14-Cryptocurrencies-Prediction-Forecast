@@ -76,20 +76,4 @@ def listen():
 
 
 if __name__ == "__main__":
-    
-    import click
-    
-    @click.command()
-    @click.option('--debug', is_flag=True)
-    @click.option('--threaded', is_flag=True)
-    @click.argument('HOST', default='0.0.0.0')
-    @click.argument('PORT', default=8222, type=int)
-    def run(debug, threaded, host, port):
-        HOST, PORT = host, port
-        print("running on %s:%d" % (HOST, PORT))
-        app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
-
-    print("thred")
-    #FlaskThread(target=send_alert).start()
-    print("run")
-    run()
+    app.run(host='0.0.0.0', port=8222, debug=True)
