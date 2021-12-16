@@ -10,6 +10,7 @@ from rethinkdb import RethinkDB
 from threading import Thread
 from datetime import datetime
 from settings import *
+from gevent.pywsgi import WSGIServer
 
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
@@ -43,21 +44,31 @@ def index():
 
 @app.route('/send')
 def send_alert():
-    r = RethinkDB()
-    conn = r.connect(host=host_rtk, port=port_rtk)
-    conn.repl()
-    for change in r.db(db).table(table_whaler_alert).changes().run(conn):
-        if change["new_val"] and not change["old_val"]:
-            data = change["new_val"]
-            dt = int(data["timestamp"])
-            dt = datetime.fromtimestamp(dt).strftime("%Y-%m-%d %H:%M:%S")
-            source = data['source'] if len(data['source']) > 0 else 'unknown'
-            dest = data['dest'] if len(data['dest']) > 0 else 'unknown'
-            text = f"{dt} {data['price']} {data['symbol']} ({data['usd']} USD) from {source} to {dest}"
-            sse.publish({"text": text}, type='whaleAlert')
+    def update():
+        for change in r.db(db).table(table_whaler_alert).changes().run(conn):
+            if change["new_val"] and not change["old_val"]:
+                data = change["new_val"]
+                dt = int(data["timestamp"])
+                dt = datetime.fromtimestamp(dt).strftime("%Y-%m-%d %H:%M:%S")
+                source = data['source'] if len(data['source']) > 0 else 'unknown'
+                dest = data['dest'] if len(data['dest']) > 0 else 'unknown'
+                text = f"{dt} {data['price']} {data['symbol']} ({data['usd']} USD) from {source} to {dest}"
+                yield text
+                sse.publish({"text": text}, type='whaleAlert')
+                
+    return Response(update(), mimetype='text/event-stream')
+                
 
 
 if __name__ == "__main__":
+    r = RethinkDB()
+    conn = r.connect(host=host_rtk, port=port_rtk)
+    conn.repl()
+    
+    http_server = WSGIServer(("localhost", 8222), app)
+    http_server.serve_forever()
+
+    '''
     import click
     
     @click.command()
@@ -74,3 +85,4 @@ if __name__ == "__main__":
     #FlaskThread(target=send_alert).start()
     print("run")
     run()
+    '''

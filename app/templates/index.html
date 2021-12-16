@@ -16,6 +16,8 @@
 
 	<script>
 	//$.get("http://34.75.110.94:8222/send")
+	// trigger the route /send
+	var eventSource = new EventSource("/send");
 
 	var speed = 15;
 	var sizeLimit = 35;
