@@ -46,7 +46,7 @@
 	eventSource.addEventListener("whale", function(e) {
 		//data = JSON.parse(e.data)
 		//console.log("whale!");
-		rows = e.data
+		rows = JSON.parse(e.data)
 		document.getElementById("demo").innerHTML += "<table><tr>"
 		for (var idx = 0; i < rows.length; idx ++){
 			console.log("whaleeee");
