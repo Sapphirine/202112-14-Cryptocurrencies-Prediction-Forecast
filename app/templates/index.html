@@ -150,16 +150,9 @@
 		document.getElementById("demo").innerHTML += "<td>" + rows['action'] + "&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['source'] + "&emsp;&emsp;&emsp;&emsp;</td>";
 		document.getElementById("demo").innerHTML += "<td>" + rows['dest'] + "</td>";
-		document.getElementById("demo").innerHTML += "</tr></table>"
-		// plot Chart
-		if (config.data.labels.length === 20) {
-			config.data.labels.shift();
-			config.data.datasets[0].data.shift();
-		}
-		config.data.labels.push(formattedTime);
-		config.data.datasets[0].data.push(parseInt(rows['price']));
-		lineChart.update();
-	  }, true)
+		document.getElementById("demo").innerHTML += "</tr></table>";
+
+	  }, true);
 
 	</script>
 </body>
