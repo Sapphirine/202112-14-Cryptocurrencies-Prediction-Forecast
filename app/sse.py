@@ -53,6 +53,7 @@ def fetch():
     df.columns = whaleAlertCols
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
+    print("fetch", df)
     return json.loads(df.to_json(orient="records"))
 
 
@@ -61,8 +62,9 @@ def whaleProducer():
   def respond_to_client():
     while True:
         _data = fetch()
+        print("whaleProducer: ", _data)
         yield f"id: 1\ndata: {_data}\nevent: whale\n\n"
-        sleep(2)
+        sleep(1)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
 

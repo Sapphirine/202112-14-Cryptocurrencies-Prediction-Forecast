@@ -58,7 +58,7 @@
 
 	eventSource.addEventListener("whale", function(e) {
 		data = JSON.parse(e.data)
-		document.querySelector("#whaleText").innerText = data.counter
+		document.querySelector("#whaleText").innerText = data
 	  }, true)
 	</script>
 </body>
