@@ -61,7 +61,7 @@ def fetch():
 def whaleProducer():
   def respond_to_client():
     while True:
-        _data = json.dumps({"whale":fetch()})
+        _data = json.dumps(fetch())
         print("whaleProducer: ", type(_data), _data)
         yield f"id: 1\ndata: {_data}\nevent: whale\n\n"
         sleep(1)

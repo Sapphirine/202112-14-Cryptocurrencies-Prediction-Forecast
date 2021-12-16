@@ -46,9 +46,9 @@
 	var whaleDiv = document.getElementById('whaleText');
 
 	eventSource.addEventListener("whale", function(e) {
-		data = JSON.parse(e.data)
-		console.log("whale!");
-		showText(data.whale);
+		//data = JSON.parse(e.data)
+		//console.log("whale!");
+		showText(e.data);
 	  }, true)
 	</script>
 </body>
