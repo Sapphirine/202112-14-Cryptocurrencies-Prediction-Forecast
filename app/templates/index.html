@@ -59,6 +59,9 @@
 
 		let unix_timestamp = parseInt(rows['timestamp'])
 		var date = new Date(unix_timestamp * 1000);
+		var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+	    var month = months[date.getMonth()];
+		var day = date.getDate();
 		// Hours part from the timestamp
 		var hours = date.getHours();
 		// Minutes part from the timestamp
@@ -67,7 +70,7 @@
 		var seconds = "0" + date.getSeconds();
 
 		// Will display time in 10:30:23 format
-		var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+		var formattedTime = day + '/' + month + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
 
 		document.getElementById("demo").innerHTML += "<table><tr>"
 		document.getElementById("demo").innerHTML += "<td>" + formattedTime + "&emsp;</td>";
