@@ -167,4 +167,4 @@ if __name__ == "__main__":
         print("\n")
         all_res.append(res)
 
-    all_res[pos].to_csv('./data/combine.csv')
+    all_res[0].to_csv('./data/combine.csv')
