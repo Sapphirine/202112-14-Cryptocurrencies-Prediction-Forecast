@@ -6,6 +6,7 @@ from flask_sse import sse
 from collections import defaultdict
 from threading import Thread
 from time import sleep
+import time
 from rethinkdb import RethinkDB
 from threading import Thread
 from datetime import datetime
@@ -99,6 +100,42 @@ def whaleProducer():
             sleep(refreshRate)
   return Response(respond_to_client(), mimetype='text/event-stream')
 
+def read_csv():
+    df = pd.read_csv('./MLDL/data/combine.csv')
+    df = df[df['pred'] != 0]
+    return json.loads(df.to_json(orient="records"))
+
+
+@app.route("/read")
+def read():
+    def respond():
+        while True:
+            rows = read_csv()
+            if rows:
+                for row in rows:
+                    if row['pred'] == 1:
+                        temp = {
+                            "point":{
+                                "x": row['date']*1000,
+                                "y": row['Close'],
+                                "xAxis": 0,
+                                "yAxis": 0
+                            },
+                            "text": "buy"
+                        }
+                    elif row['pred'] == 2:
+                        temp = {
+                            "point":{
+                                "x": row['date']*1000,
+                                "y": row['Close'],
+                                "xAxis": 0,
+                                "yAxis": 0
+                            },
+                            "text": "sell"
+                        }
+                    yield f"data: {json.dumps(temp)}\nevent: point\n\n"
+                sleep(refreshRate)
+    return Response(respond(), mimetype='text/event-stream')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8222, debug=True)
