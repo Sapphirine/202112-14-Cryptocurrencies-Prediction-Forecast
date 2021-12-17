@@ -66,11 +66,14 @@ def fetch():
     res = req.get(whaleAlertUrl)
     recs = [rec.split(",") for rec in res.text.split("\n")]
     df = pd.DataFrame(recs)
+    print(df)
     df = df.drop([7, 9], axis=1)
     df.columns = whaleAlertCols
+    df.timestamp = df.timestamp.astype(int)
     df.price = df.price.astype(float)
     df.usd = df.usd.astype(float)
-    df_filtered = df #df[df['symbol'] == 'btc']
+    # print(df['timestamp'])
+    df_filtered = df.sort_values(by='timestamp', ascending=True) #df[df['symbol'] == 'btc']
     if df_filtered.shape[0] == 0:
          return None
     return json.loads(df_filtered.to_json(orient="records"))
