@@ -102,7 +102,20 @@ def whaleProducer():
 
 def read_csv():
     df = pd.read_csv('./MLDL/data/combine.csv')
-    df = df[df['pred'] != 0]
+    if 'pred' in df.iloc[0]:
+        df = df[df['pred'] != 0]
+    elif 'Label' in df.iloc[0]:
+        df = df[df['Label'] != 0]
+    if 'Date' in df.iloc[0]:
+        df['Date'] = df['Date'] + " 00:00:00"
+        df['Date'] = pd.to_datetime(df['Date'])
+        df = df.copy()
+        df['timestamp'] = (df['Date'].astype(int)/10**9).astype(int)
+    if 'date' in df.iloc[0] and isinstance(df.iloc[0]['date'], str):
+        df['date'] = df['date'] + " 00:00:00"
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.copy()
+        df['date'] = (df['date'].astype(int)/10**9).astype(int)
     return json.loads(df.to_json(orient="records"))
 
 
@@ -113,26 +126,48 @@ def read():
             rows = read_csv()
             if rows:
                 for row in rows:
-                    if row['pred'] == 1:
-                        temp = {
-                            "point":{
-                                "x": row['date']*1000,
-                                "y": row['Close'],
-                                "xAxis": 0,
-                                "yAxis": 0
-                            },
-                            "text": "buy"
-                        }
-                    elif row['pred'] == 2:
-                        temp = {
-                            "point":{
-                                "x": row['date']*1000,
-                                "y": row['Close'],
-                                "xAxis": 0,
-                                "yAxis": 0
-                            },
-                            "text": "sell"
-                        }
+                    if 'date' in row:
+                        if row['pred'] == 1:
+                            temp = {
+                                "point":{
+                                    "x": row['date']*1000,
+                                    "y": row['Low'],
+                                    "xAxis": 0,
+                                    "yAxis": 0
+                                },
+                                "text": "buy"
+                            }
+                        elif row['pred'] == 2:
+                            temp = {
+                                "point":{
+                                    "x": row['date']*1000,
+                                    "y": row['High'],
+                                    "xAxis": 0,
+                                    "yAxis": 0
+                                },
+                                "text": "sell"
+                            }
+                    else:
+                        if row['Label'] == 1:
+                            temp = {
+                                "point":{
+                                    "x": row['timestamp']*1000,
+                                    "y": row['Low'],
+                                    "xAxis": 0,
+                                    "yAxis": 0
+                                },
+                                "text": "buy"
+                            }
+                        elif row['Label'] == 2:
+                            temp = {
+                                "point":{
+                                    "x": row['timestamp']*1000,
+                                    "y": row['High'],
+                                    "xAxis": 0,
+                                    "yAxis": 0
+                                },
+                                "text": "sell"
+                            }
                     yield f"data: {json.dumps(temp)}\nevent: point\n\n"
                 sleep(refreshRate)
     return Response(respond(), mimetype='text/event-stream')

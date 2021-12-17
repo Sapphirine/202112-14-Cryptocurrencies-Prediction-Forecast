@@ -5,11 +5,13 @@ import numpy as np
 import sys
 
 def combine(pred, btc, day_data, command):
+    greedy_approach = False
+
     if not day_data:
         btc['time_open'] = btc['time_open']/1000
         btc = btc.copy()
         btc['time_open'] = btc['time_open'].astype(int)
-        btc = btc[['time_open', 'Close']]
+        btc = btc[['time_open', 'Close', 'High', 'Low']]
         btc.drop_duplicates(subset=['time_open'], keep='first', inplace=True)
     else:
         btc.drop_duplicates(subset=['Date'], keep='first', inplace=True)
@@ -19,18 +21,24 @@ def combine(pred, btc, day_data, command):
     if command == 0:
         for i, data in pred.iterrows():
             if not day_data:
-                if data['entropy'] >= 0.5:
+                if data['entropy'] >= 0.4:
                     pred.at[i, 'pred'] = 0
             else:
-                if data['entropy'] >= 0.85:
-                    pred.at[i, 'pred'] = 0
+                if data['entropy'] >= 0.95:
+                    # pred.at[i, 'pred'] = 0
+                    pass
     elif command == 1:
         for i, data in pred.iterrows():
-            if data['pred'] == 1 and data['buy'] <= 0.5:
-                pred.at[i, 'pred'] = 0
-            elif data['pred'] == 2 and data['sell'] <= 0.5:
-                pred.at[i, 'pred'] = 0
-
+            if not day_data:
+                if data['pred'] == 1 and data['buy'] <= 0.8:
+                    pred.at[i, 'pred'] = 0
+                elif data['pred'] == 2 and data['sell'] <= 0.8:
+                    pred.at[i, 'pred'] = 0
+            else:
+                if data['pred'] == 1 and data['buy'] <= 0.35:
+                    pred.at[i, 'pred'] = 0
+                elif data['pred'] == 2 and data['sell'] <= 0.35:
+                    pred.at[i, 'pred'] = 0
 
     date_set = set()
     test = {}
@@ -50,7 +58,21 @@ def combine(pred, btc, day_data, command):
     pred.reset_index(drop=True, inplace=True)
 
     res = pd.concat([pred, btc], axis=1)
-    res = res[['date', 'Close', 'pred', 'hold', 'buy', 'sell']]
+    res = res[['date', 'Close', 'High', 'Low', 'pred', 'hold', 'buy', 'sell']]
+
+    if greedy_approach:
+        buy = True
+        for i, data in res.iterrows():
+            if data['pred'] == 1:
+                if buy:
+                    buy = False
+                else:
+                    pred.at[i, 'pred'] = 0
+            elif data['pred'] == 2:
+                if not buy:
+                    but = True
+                else:
+                    pred.at[i, 'pred'] = 0
 
     return res
 
@@ -84,6 +106,8 @@ def backtest(res, threshold, command):
 
     for i, data in res.iterrows():
         label = data['pred']
+        buy_price = data['Low']
+        sell_price = data['High']
         price = data['Close']
         if command == 2:
             if label == 1:
@@ -91,19 +115,19 @@ def backtest(res, threshold, command):
             elif label == 2:
                 percentage = data['sell']*0.5
         # print(label, price)
-        if label == 1 and hold >= price:
-            if hold*percentage < price:
-                hold -= price
+        if label == 1 and hold >= buy_price:
+            if hold*percentage < buy_price:
+                hold -= buy_price
                 sharehold += 1
             else:
                 to_buy = hold*percentage
                 hold *= (1-percentage)
-                sharehold += to_buy/price
+                sharehold += to_buy/buy_price
                 
         elif label == 2 and sharehold >= 1/(percentage*2):
             to_sell = sharehold*percentage
             sharehold -= to_sell
-            hold += to_sell * price
+            hold += to_sell * sell_price
 
 
     latest_price = res.iloc[-1]['Close']
@@ -167,4 +191,4 @@ if __name__ == "__main__":
         print("\n")
         all_res.append(res)
 
-    all_res[0].to_csv('./data/combine.csv')
+    all_res[1].to_csv('./data/combine.csv')
