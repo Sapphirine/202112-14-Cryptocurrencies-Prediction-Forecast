@@ -28,7 +28,7 @@ credentials_path = './pubsub/credential/myFile.privateKey.json'
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 publisher = pubsub_v1.PublisherClient()
 topicWhaleAlert = 'projects/e6893-hw0/topics/whaleAlert'
-alertThreshold = 12000
+alertThreshold = 100000
 
 
 class FlaskThread(Thread):
