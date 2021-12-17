@@ -13,6 +13,7 @@ from settings import *
 import requests as req
 import pandas as pd
 import json
+from google.cloud import pubsub_v1
 
 whaleAlertUrl = "https://api.whale-alert.io/feed.csv"
 whaleAlertCols = ["id", "timestamp", "symbol", "price", "usd", "action", "source", "dest"]
@@ -21,7 +22,12 @@ static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'statics')
 app = Flask(__name__, template_folder=tmpl_dir, static_folder=static_dir, static_url_path='')
 app.config["REDIS_URL"] = "redis://localhost"
 app.register_blueprint(sse, url_prefix='/stream')
-refreshRate = 30
+refreshRate = 60
+credentials_path = './pubsub/credential/myFile.privateKey.json'
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
+publisher = pubsub_v1.PublisherClient()
+topicWhaleAlert = 'projects/e6893-hw0/topics/whaleAlert'
+alertThreshold = 1000
 
 
 class FlaskThread(Thread):
@@ -39,6 +45,20 @@ def index():
     #context = dict(data = data)
     context = {}
     return render_template("index.html", **context)
+
+
+@app.route('/getWhale')
+def getWhale():
+    #context = dict(data = data)
+    context = {}
+    return render_template("whale.html", **context)
+
+
+@app.route('/getPredict')
+def getPredict():
+    #context = dict(data = data)
+    context = {}
+    return render_template("predict.html", **context)
 
 
 def fetch():
@@ -61,8 +81,21 @@ def whaleProducer():
     while True:
         rows = fetch()
         if rows:
+            message = ""
             for row in rows:
                 yield f"id: 1\ndata: {json.dumps(row)}\nevent: whale\n\n"
+                # when the whale hits the threshold, publish the events
+                if row['price'] >= alertThreshold:
+                    date = datetime.fromtimestamp(int(row['timestamp']))
+                    message += date.strftime("%m/%d/%Y %H:%M:%S")
+                    message += ", price: {}".format(row['price'])
+                    message += ", action: {}".format(row['action'])
+                    message += ", source: {}".format(row['source'])
+                    message += ", dest: {}".format(row['dest']) + "\n"
+            if message:
+                data = message.encode('utf-8')
+                future = publisher.publish(topicWhaleAlert, data)
+                print(f'published message id {future.result()}')
             sleep(refreshRate)
   return Response(respond_to_client(), mimetype='text/event-stream')
 

@@ -5,11 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: 目前檔案",
+            "name": "Python: Flask",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        }
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "app/sse.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "0"
+            },
+            "args": [
+                "run",
+                "--port",
+                "8222"
+            ],
+            "jinja": true
+        },
     ]
 }

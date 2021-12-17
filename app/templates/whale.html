@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %} Bitcoin Huge Transactions Real-Time Alerts {% endblock%}
+{% block content %}
+        <h2>Bitcoin Huge Transactions Real-Time Alerts</h2>
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <canvas id="canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--suppress JSUnresolvedLibraryURL -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+        <!--suppress JSUnresolvedLibraryURL -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <!--suppress JSUnresolvedLibraryURL -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+    
+        <section class="ftco-section">
+            <div id="demo" class="container">
+            </div>
+        </section>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.min.js"></script>
+    
+        <script>
+            $(document).ready(function () {
+                const config = {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: "Volume Trend",
+                            backgroundColor: 'rgb(203, 161, 53)',
+                            borderColor: 'rgb(203, 161, 53)',
+                            data: [],
+                            fill: false,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        title: {
+                            display: true,
+                            text: 'Real-Time BTC whale alert'
+                        },
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        hover: {
+                            mode: 'nearest',
+                            intersect: true
+                        },
+                        scales: {
+                            xAxes: [{
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Time'
+                                }
+                            }],
+                            yAxes: [{
+                                display: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Bitcoin transaction amount'
+                                }
+                            }]
+                        }
+                    }
+                };
+        
+                const context = document.getElementById('canvas').getContext('2d');
+                const lineChart = new Chart(context, config);
+                var source = new EventSource("/whaleProducer");
+                source.addEventListener("whale", function(event) {
+                    console.log(event.data);
+                    transaction = JSON.parse(event.data);
+                    let unix_timestamp = parseInt(transaction['timestamp'])
+                    var date = new Date(unix_timestamp * 1000);
+                    var months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+                    var year = date.getFullYear();
+                    var month = months[date.getMonth()];
+                    var day = date.getDate();
+                    // Hours part from the timestamp
+                    var hours = date.getHours();
+                    // Minutes part from the timestamp
+                    var minutes = "0" + date.getMinutes();
+                    // Seconds part from the timestamp
+                    var seconds = "0" + date.getSeconds();
+                    var formattedTime = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+                    var newLine = "<table><tr>"
+                    newLine += "<td>" + formattedTime + "&emsp;&emsp;&emsp;&emsp;&emsp;</td>";
+                    newLine += "<td>" + transaction['price'] + "&emsp;&emsp;&emsp;</td>";
+                    newLine += "<td>" + transaction['action'] + "&emsp;&emsp;&emsp;&emsp;</td>";
+                    newLine += "<td>" + transaction['source'] + "&emsp;&emsp;&emsp;&emsp;</td>";
+                    newLine += "<td>" + transaction['dest'] + "</td>";
+                    newLine += "</tr></table>\n"
+                    let rows = document.getElementById("demo").innerHTML.split("\n");
+                    if (rows.length >= 5){
+                        document.getElementById("demo").innerHTML = rows.slice(1, 5).join("\n") + "\n";
+                    }
+                    document.getElementById("demo").innerHTML += newLine
+                    
+                    if (config.data.labels.length === 100) {
+                        config.data.labels.shift();
+                        config.data.datasets[0].data.shift();
+                    }
+                    config.data.labels.push(formattedTime);
+                    config.data.datasets[0].data.push(parseInt(transaction['price']));
+                    lineChart.update();
+                }, true)
+            });
+    
+    
+    
+        </script>
+{% endblock %}
