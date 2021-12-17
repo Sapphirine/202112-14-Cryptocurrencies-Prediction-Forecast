@@ -1,0 +1,178 @@
+<script src="https://code.highcharts.com/stock/highstock.js"></script>
+<script src="https://code.highcharts.com/stock/modules/data.js"></script>
+<script src="https://code.highcharts.com/stock/modules/drag-panes.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+<script src="https://code.highcharts.com/modules/annotations.js"></script>
+<script src="https://code.highcharts.com/stock/modules/hollowcandlestick.js"></script>
+<script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+<div id="container" style="height: 700px; min-width: 310px"></div>
+
+<script> 
+var timestamp = Math.round((new Date().getTime()/1000) - 31536000);
+//var timestamp = 1552449600;
+var url = "https://poloniex.com/public?command=returnChartData&currencyPair=USDT_BTC&start=" + timestamp + "&end=9999999999&period=1800";
+
+
+
+var source = new EventSource("/read");
+var points1 = [];
+var points2 = [];
+
+source.addEventListener("point", function(event) {
+	
+	// console.log(event.data);
+	data = JSON.parse(event.data);
+	if (data['text'] == 'buy'){
+		data['text'] += ' ';
+		data['text'] += data['point']['y']
+		points1.push(data);
+	}
+	else{
+		data['text'] += ' ';
+		data['text'] += data['point']['y']
+		points2.push(data);
+	}
+	
+}, false);
+
+Highcharts.setOptions({
+    global: {
+        timezoneOffset: 5 * 60
+    }
+});
+
+Highcharts.getJSON(url, function (data) {
+
+  var ohlc = [],
+    volume = [],
+    dataLength = data.length,
+    groupingUnits = [
+    	['minute', [30]],
+    	['hour', [1, 6]],
+    	['day', [1]],
+    ],
+
+    i = 0;
+
+  for (i; i < dataLength; i += 1) {
+    ohlc.push([
+      data[i]['date']*1000, 
+      data[i]['open'],
+      data[i]['high'], 
+      data[i]['low'], 
+      data[i]['close'] 
+    ]);
+
+    volume.push([
+      data[i]['date']*1000, 
+      data[i]['volume'] 
+    ]);
+  }
+
+
+
+ // create the chart
+ Highcharts.stockChart('container', {
+    rangeSelector: {
+	    buttons: [{
+		    type: 'hour',
+		    count: 12,
+		    text: '12h'
+		}, {
+		    type: 'day',
+		    count: 1,
+		    text: '1d'
+		}, {
+		    type: 'week',
+		    count: 1,
+		    text: '1w'
+		}, {
+		    type: 'month',
+		    count: 1,
+		    text: '1m'
+		}, {
+		    type: 'year',
+		    count: 1,
+		    text: '1y'
+		}, {
+			type: 'all',
+		    text: 'All',
+		    title: 'View all'
+		}],
+		selected: 1
+    },
+
+    annotations: [
+    	{
+	    	labelOptions: {
+		      backgroundColor: 'rgba(255,255,255,0.5)',
+		      verticalAlign: 'top',
+		      y: 15
+		    },
+	        labels: points1
+	    }, 
+	    {
+	        labels: points2
+	    }
+	],
+
+    title: {
+      text: 'Bitcoin price'
+    },
+
+    yAxis: [{
+      labels: {
+        align: 'right',
+        x: -3
+      },
+      title: {
+        text: 'OHLC'
+      },
+      height: '60%',
+      lineWidth: 2,
+      resize: {
+        enabled: true
+      }
+    }, {
+      labels: {
+        align: 'right',
+        x: -3
+      },
+      title: {
+        text: 'Volume'
+      },
+      top: '65%',
+      height: '35%',
+      offset: 0,
+      lineWidth: 2
+    }],
+
+    tooltip: {
+      split: true
+    },
+
+    series: [{
+      type: 'hollowcandlestick',
+      name: 'BTC',
+      data: ohlc,
+      dataGrouping: {
+        units: groupingUnits,
+        groupPixelWidth: 10
+      }
+    }, {
+      type: 'column',
+      name: 'Volume',
+      data: volume,
+      yAxis: 1,
+      dataGrouping: {
+        units: groupingUnits,
+        groupPixelWidth: 10
+      }
+    }]
+  });
+});
+
+
+</script>
