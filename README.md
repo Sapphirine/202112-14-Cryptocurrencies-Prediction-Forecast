@@ -12,9 +12,11 @@ EECS E6893: Big Data Analytics Team14 project
 
 ## [Project Proposal](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/project%20proposal/EECS%20E6893_%20Big%20Data%20Analytics%20Project%20Proposal.docx)
 
+## [Project proposal slides](https://github.com/tim-kao/202112-14-Cryptocurrencies-Prediction-Forecast/blob/main/slides/Cryptocurrencies%20Prediction%20%26%20Forecast.pdf)
+
 ## [Progress report](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/progress%20report/progress_report_group14.pdf)
 
-## [Presentation slides](https://github.com/tim-kao/202112-14-Cryptocurrencies-Prediction-Forecast/blob/main/slides/Cryptocurrencies%20Prediction%20%26%20Forecast.pdf)
+## [Presentation final slides](https://github.com/tim-kao/202112-14-Cryptocurrencies-Prediction-Forecast/blob/main/slides/Cryptocurrencies%20Prediction%20%26%20Forecast-final.pdf)
 
 ## Service/Methods
 - app/sse.py flask endpoints along with frontends
