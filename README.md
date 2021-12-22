@@ -14,6 +14,8 @@ EECS E6893: Big Data Analytics Team14 project
 
 ## [Progress report](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/progress%20report/progress_report_group14.pdf)
 
+## [Presentation slides](https://github.com/tim-kao/202112-14-Cryptocurrencies-Prediction-Forecast/blob/main/slides/Cryptocurrencies%20Prediction%20%26%20Forecast.pdf)
+
 ## Service/Methods
 - app/sse.py flask endpoints along with frontends
 - Crawlers/*.py btc price scraper
