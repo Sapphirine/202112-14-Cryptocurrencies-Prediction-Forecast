@@ -1,16 +1,18 @@
 # Cryptocurrencies-Prediction-Forecast
 EECS E6893: Big Data Analytics Team14 project
 
-- Contributors
+## Contributors
 - [Cheng-Hao Ho(ch3561)](https://github.com/chho33)
 - [Shuoting Kao(sk4920)](https://github.com/tim-kao)	
 - [Wei-Ren Lai(wl2777)](https://github.com/swallen000)
 
-## [Architecture](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/images/architecture.png)
+## Architecture
 
-## [Project Proposal](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/project proposal/EECS E6893_ Big Data Analytics Project Proposal.docx)
+![image](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/images/architecture.png)
 
-## [Progress report](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/progress report/progress_report_group14.pdf)
+## [Project Proposal](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/project%20proposal/EECS%20E6893_%20Big%20Data%20Analytics%20Project%20Proposal.docx)
+
+## [Progress report](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/progress%20report/progress_report_group14.pdf)
 
 ## Service/Methods
 - app/sse.py flask endpoints along with frontends
