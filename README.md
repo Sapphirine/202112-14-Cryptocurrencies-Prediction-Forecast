@@ -24,7 +24,7 @@ EECS E6893: Big Data Analytics Team14 project
 - git clone repo and install all necessary packages (either onto system or in virtual environment)
    using [requirements.txt](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/requirements.txt)
 
-        `pip install -r requirements.txt`
+        pip install -r requirements.txt
 
 ### Configuration Files
 - [requirements.txt](https://github.com/tim-kao/Cryptocurrencies-Prediction-Forecast/blob/main/requirements.txt)
