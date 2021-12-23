@@ -11,28 +11,32 @@ import numpy as np
 from datetime import datetime, timedelta
 from datetime import date as date_util
 from dateutil import parser as date_parser
-from rethinkdb import RethinkDB
 import configparser
 from binance.client import Client
+from google.cloud import storage
+from google.cloud import bigquery
+
 
 today = date_util.today().strftime("%Y-%m-%d")
-db_binance = "Binance"
-table_binance_tick = "Tick"
 config = configparser.ConfigParser()
 config.read("cred.config")
 binance_key = config["binance"]["key"]
 binance_secret = config["binance"]["key"]
 
 
-def _clean_year(dt) -> str:
-    year = ""
-    for c in str(dt)[:4]:
-        try:
-            int(c)
-        except ValueError:
-            continue
-        year += c
-    return int(year)
+
+def uploadToStorage(df, fileName, dirName):
+    client = storage.Client()
+    bucket = client.get_bucket("crypto-team14")
+    bucket.blob(f'{dirName}/{fileName}').upload_from_string(df.to_csv(), 'text/csv')
+
+
+def uploadToBigQuery(fileName, dirName, table, dataset):
+    subprocess.check_call(
+        'bq load --autodetect=true --allow_quoted_newlines=true '
+        '--project_id=e6893-hw0 --format=csv '
+        f'{dataset}.{table} gs://crypto-team14/{dirName}/{fileName}'.split()
+    )
 
 
 def _clean_date(dt, paste="-", form="en") -> str:
@@ -55,11 +59,6 @@ def _clean_date(dt, paste="-", form="en") -> str:
             return f"{md[2]}{paste}{md[1]}{paste}{md[0]}"
         elif len(md[2]) < 4:
             return f"{int(md[2])+1911}{paste}{md[1]}{paste}{md[0]}"
-    elif form == "zh":
-        if len(md[2]) == 4:
-            return f"{int(md[2])-1911}{paste}{md[1]}{paste}{md[0]}"
-        elif len(md[2]) < 4:
-            return f"{md[2]}{paste}{md[1]}{paste}{md[0]}"
 
 
 def is_null_int_val(val) -> bool:
@@ -101,12 +100,6 @@ def clean_str(val):
     return str(val).strip().lower()
 
 
-def clean_year(val):
-    if is_null_str_val(val): return
-    val = _clean_year(val)
-    return int(val)
-
-
 def clean_date(val, paste="-", form="en"):
     if is_null_str_val(val): return
     val = str(val)
@@ -130,7 +123,7 @@ class ETL(metaclass=abc.ABCMeta):
         if data is not None:
             data.to_csv(f"{self.dump_dir}/{filename}.csv", index=index)
         else:
-            self.data.to_csv(f"{self.dump_dir}/{filename}.csv", index=index)
+            pd.DataFrame(self.data).to_csv(f"{self.dump_dir}/{filename}.csv", index=index)
         print(f"{self.dump_dir}/{filename}.csv dumped")
 
     def dump_json(self, dump_dir, filename, data=None, orient="records"):
@@ -139,7 +132,7 @@ class ETL(metaclass=abc.ABCMeta):
         if data is not None:
             data.to_json(f"{self.dump_dir}/{filename}.json", orient=orient)
         else:
-            self.data.to_json(f"{self.dump_dir}/{filename}.json", orient=orient)
+            pd.DataFrame(self.data).to_json(f"{self.dump_dir}/{filename}.json", orient=orient)
         print(f"{self.dump_dir}/{filename}.json dumped")
 
     @abc.abstractmethod
@@ -201,42 +194,7 @@ class ETL(metaclass=abc.ABCMeta):
                 pass
 
 
-class ETLRtk(ETL):
-    def __init__(self, **kwargs):
-        super(ETLRtk, self).__init__(**kwargs)
-        self.r = RethinkDB()
-        self.loop = asyncio.get_event_loop()
-        self.__dict__.update(kwargs)
-        self.insert_type = "error"
-        self.count = 0
-
-    def get_data(self):
-        pass
-
-    def unify_cols(self):
-        pass
-
-    def gen_id(self):
-        pass
-
-    def map_vals(self, x):
-        pass
-
-    def insert_db(self, data=None, rec_count=True):
-        if data is None:
-            data = self.data
-        if data is None: return
-        self.r.set_loop_type('')
-        with self.r.connect(host, port) as conn:
-            self.r.db(self.db).table(self.table)\
-               .insert(data, conflict=self.insert_type).run(conn)
-
-        self.count += len(data)
-        if rec_count:
-            self.log_count(key=f"rtk.{self.db}.{self.table}")
-
-
-class BinanceTickBase(ETLRtk):
+class BinanceTickBase(ETL):
     def __init__(self, **kwargs):
         super(BinanceTickBase, self).__init__(**kwargs)
         self.data = None
@@ -255,7 +213,12 @@ class BinanceTickBase(ETLRtk):
         return hash_key
 
     def unify_cols(self):
-        pass
+        self.data = self.data.rename(columns={"open": "Open",
+            "close": "Close",
+            "high": "High",
+            "low": "Low",
+            "vol": "Volume"
+        }) 
 
     def map_vals(self):
         self.do_map_vals()
@@ -265,8 +228,6 @@ class BinanceTick(BinanceTickBase):
     def __init__(self, **kwargs):
         super(BinanceTick, self).__init__(**kwargs)
         self.name = "binance_Tick"
-        self.db = db_binance
-        self.table = table_binance_tick
         self.data = None
         self.client = Client(binance_key, binance_secret)
         self.cols = [
@@ -298,9 +259,13 @@ class BinanceTick(BinanceTickBase):
             "ignore",
         ]
 
-    def _get_data(self, trade_id, symbol, date_start, date_end):
+    def _get_data(self, trade_id, symbol, freq, date_start, date_end):
+        if freq == "1hour":
+            freq = Client.KLINE_INTERVAL_1HOUR 
+        elif freq == "day":
+            freq = Client.KLINE_INTERVAL_1DAY 
         klines = self.client.get_historical_klines(trade_id,\
-                Client.KLINE_INTERVAL_1HOUR, date_start, date_end)
+                freq, date_start, date_end)
         self.data = pd.DataFrame.from_records(klines)
         if self.data.empty: return
         self.data.columns = self.cols
@@ -308,10 +273,10 @@ class BinanceTick(BinanceTickBase):
         self.data = self.data.assign(symbol = symbol)
 
 
-    def get_data(self, trade_id, symbol, date_start="2017-01-01", date_end=today, gen_id=True, to_json=True):
+    def get_data(self, trade_id, symbol, freq, date_start="2017-01-01", date_end=today, gen_id=False, to_json=False):
         date_start = date_parser.parse(date_start).strftime("%d %B, %Y")
         date_end = date_parser.parse(date_end).strftime("%d %B, %Y")
-        self._get_data(trade_id, symbol, date_start, date_end)
+        self._get_data(trade_id, symbol, freq, date_start, date_end)
         if self.data is None:
             self.logger.info(f"{trade_id} {date_start} {date_end}")
             return
@@ -319,3 +284,12 @@ class BinanceTick(BinanceTickBase):
             self.logger.info(f"{trade_id} {date_start} {date_end}")
             return
         super(BinanceTick, self).get_data(gen_id=gen_id, to_json=to_json)
+
+
+    def clean_date(self, freq): 
+        self.data.time_open /= 1000
+        if freq == "1hour":
+            self.data = self.data.rename(columns={"time_open": "timestamp"})
+        elif freq == "day":
+            self.data = self.data.rename(columns={"time_open": "Date"})
+            self.data.Date = self.data.Date.apply(lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d"))
