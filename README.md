@@ -115,7 +115,7 @@ You will find all the DAG in **dag/scripts** directory. The main entry points ar
    - batch_size: 16
    - epochs: 300
    - training data result:
-      - <img src="https://imgur.com/hOQ6stW.jpg" width="350" height="350">
+      - <img src="https://imgur.com/wYFYFvB.jpg" width="350" height="350">
    - test data result: 
       - <img src="https://imgur.com/YiQMIXM.jpg" width="350" height="350">
 - hourly
