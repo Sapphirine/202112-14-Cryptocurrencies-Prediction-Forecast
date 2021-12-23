@@ -166,3 +166,7 @@ You will find all the DAG in **dag/scripts** directory. The main entry points ar
       - *Use entropy as threshold: $1183372* 
       - *Use percentage as threshold: $1282376* 
       - *Use difference as threshold: $1014512*
+
+## Reference
+- The WaveNet model implementaion in this repository refer to https://github.com/EvilPsyCHo/Deep-Time-Series-Prediction.
+- The CvT model implementaion in this repository refer to https://github.com/microsoft/CvT.
